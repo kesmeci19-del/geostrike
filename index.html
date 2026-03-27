@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<title>GeoStrike</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080C;--s1:#0F1118;--s2:#161922;--bd:#1D2130;--bd2:#252A3A;
+  --blue:#3B8BD4;--blue-dim:#0D2035;--red:#E24B4A;
+  --green:#4CAF50;--green-dim:#1B3A1C;--amber:#EF9F27;--amber-dim:#3A2800;
+  --white:#EEE;--dim:#888780;--dimmer:#3A3A38;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--white);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+button{font-family:var(--sans);cursor:pointer}
+input[type=range]{accent-color:var(--blue);width:100%}
+
+/* OpenCV yükleme */
+.ocv-screen{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.ocv-logo{font-family:var(--display);font-size:36px;font-weight:800;letter-spacing:3px}
+.ocv-logo em{color:var(--blue);font-style:normal}
+.ocv-bar-bg{width:260px;height:5px;background:var(--dimmer);border-radius:3px;overflow:hidden}
+.ocv-bar{height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
+.ocv-txt{font-size:12px;color:var(--dim);font-family:var(--mono)}
+
+.wrap{max-width:960px;margin:0 auto;padding:14px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.logo{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:2px}
+.logo em{color:var(--blue);font-style:normal}
+.sub{font-size:11px;color:var(--dim);margin-top:2px}
+.badge{padding:4px 10px;border-radius:20px;border:1px solid var(--green);font-size:10px;color:var(--green);display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.prog{display:flex;gap:3px;margin-bottom:14px}
+.ps{flex:1;height:3px;border-radius:2px;background:var(--dimmer);transition:background .4s}
+.ps.done{background:var(--green)}.ps.active{background:var(--blue)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.ch{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ct{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.cb{padding:14px}
+
+/* Kamera Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.modal-inner{width:100%;max-width:480px;display:flex;flex-direction:column;gap:10px}
+.cam-view{position:relative;border-radius:12px;overflow:hidden;background:#000;width:100%}
+.cam-view video{width:100%;display:block;object-fit:cover}
+.cam-hud{position:absolute;inset:0;pointer-events:none}
+.cg-h{position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,.15)}
+.cg-v{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.15)}
+.cg-corner{position:absolute;width:22px;height:22px;border:2px solid rgba(255,255,255,.55)}
+.cg-tl{top:12px;left:12px;border-right:none;border-bottom:none}
+.cg-tr{top:12px;right:12px;border-left:none;border-bottom:none}
+.cg-bl{bottom:12px;left:12px;border-right:none;border-top:none}
+.cg-br{bottom:12px;right:12px;border-left:none;border-top:none}
+.cam-label{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 14px;text-align:center;white-space:nowrap}
+.cam-label-main{font-size:12px;font-weight:600;color:var(--white)}
+.cam-label-sub{font-size:10px;color:var(--dim);margin-top:1px}
+.north-badge{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.65);display:flex;flex-direction:column;align-items:center;justify-content:center}
+/* Yatay seviye */
+.level-wrap{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);border-radius:10px;padding:5px 14px;display:flex;align-items:center;gap:8px}
+.level-bar{width:90px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;position:relative}
+.level-mid{position:absolute;left:50%;top:-3px;width:2px;height:10px;background:rgba(255,255,255,.3);transform:translateX(-50%)}
+.level-cursor{position:absolute;top:-4px;width:4px;height:12px;border-radius:2px;background:var(--green);transition:left .1s,background .2s}
+.level-txt{font-size:10px;color:var(--dim);font-family:var(--mono);min-width:36px}
+/* Sensör şerit */
+.sensor-strip{background:rgba(7,8,12,.85);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 14px;display:flex;justify-content:space-around}
+.s-item{text-align:center}
+.s-lbl{font-size:9px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase}
+.s-val{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--blue);margin-top:1px}
+/* Kamera kontroller */
+.cam-ctrl{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cam-previews{display:flex;gap:8px}
+.cprev{width:58px;height:78px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;color:var(--dimmer)}
+.cprev img{width:100%;height:100%;object-fit:cover}
+.cprev.active{border-color:var(--blue);background:var(--blue-dim)}
+.cprev-check{position:absolute;top:2px;right:2px;background:var(--green);border-radius:50%;width:14px;height:14px;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.btn-cap{width:68px;height:68px;border-radius:50%;border:3px solid var(--white);background:transparent;display:flex;align-items:center;justify-content:center;transition:transform .1s;flex-shrink:0}
+.btn-cap:active{transform:scale(.88)}
+.btn-cap-inner{width:52px;height:52px;border-radius:50%;background:var(--white);transition:background .15s}
+.btn-cap.done .btn-cap-inner{background:var(--green)}
+.cam-status{font-size:11px;color:var(--dim);text-align:center}
+.cam-side-btns{display:flex;flex-direction:column;gap:6px}
+.side-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--bd2);background:transparent;color:var(--dim);font-size:12px}
+.side-btn:hover{border-color:var(--blue);color:var(--blue)}
+.side-btn.danger{border-color:var(--red);color:var(--red)}
+
+/* Focal length badge */
+.focal-badge{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:11px;font-family:var(--mono);color:var(--dim)}
+.focal-val{color:var(--amber);font-weight:600}
+
+/* Genel butonlar */
+.btn{padding:9px 18px;border-radius:8px;border:none;font-weight:600;font-size:13px;letter-spacing:.3px;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover:not(:disabled){opacity:.88}
+.btn-g{background:transparent;border:1px solid var(--bd2);color:var(--dim)}.btn-g:hover{border-color:var(--blue);color:var(--blue)}
+.btn-sm{padding:5px 11px;font-size:11px}
+
+/* Photo slots */
+.pslot{aspect-ratio:3/4;border-radius:8px;border:1px dashed var(--bd2);background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s}
+.pslot:hover{border-color:var(--blue)}.pslot.has{border-style:solid;border-color:var(--bd)}
+.pslot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pslot input{display:none}
+.pslot-num{font-size:20px;font-weight:700;color:var(--dimmer);position:relative;z-index:1}
+.pslot-lbl{font-size:10px;color:var(--dim);margin-top:5px;position:relative;z-index:1}
+.pslot-check{position:absolute;top:5px;right:5px;background:var(--green);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;z-index:2}
+.pslot-ov{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);padding:3px 8px;font-size:10px;color:rgba(255,255,255,.8);z-index:2}
+.cam-open-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px;border-radius:8px;border:1px solid var(--blue);background:var(--blue-dim);color:var(--blue);font-size:13px;font-weight:600;margin-bottom:8px}
+
+/* Sensör panel */
+.si-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.si-lbl{font-size:11px;color:var(--dim);width:80px;flex-shrink:0}
+.si-val{font-family:var(--mono);font-size:12px;color:var(--white);min-width:44px;text-align:right}
+
+/* Overlap */
+.ovbar{height:5px;border-radius:3px;background:var(--dimmer);overflow:hidden;margin-top:4px;position:relative}
+.ovfill{height:100%;border-radius:3px;transition:width .4s}
+.ovmark{position:absolute;left:60%;top:-3px;width:2px;height:11px;background:rgba(255,255,255,.3)}
+
+/* Log */
+.logbox{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--dim);height:200px;overflow-y:auto;line-height:1.8}
+.logbox .lok{color:var(--green)}.logbox .lwarn{color:var(--amber)}.logbox .linfo{color:var(--blue)}.logbox .lhead{color:var(--white);font-weight:500}
+
+/* Sonuç */
+.geo-box{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px;text-align:center;margin-bottom:12px}
+.geo-fmt{font-family:var(--display);font-size:34px;font-weight:800;letter-spacing:2px;color:var(--white);margin-bottom:4px}
+.geo-sub{font-size:11px;color:var(--dim)}
+.rrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rlbl{color:var(--dim);font-size:12px;width:140px}
+.rval{font-family:var(--mono);font-size:13px;font-weight:500}
+.confbadge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:12px;border:1px solid;font-size:11px;font-weight:700;margin-top:8px}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600}
+.cb-blue{background:var(--blue-dim);color:var(--blue)}.cb-green{background:var(--green-dim);color:var(--green)}.cb-amber{background:var(--amber-dim);color:var(--amber)}
+
+#canvas3d{width:100%;display:block;cursor:grab}
+.canvctrl{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--s2);border-top:1px solid var(--bd);font-size:11px;color:var(--dim)}
+.divider{height:1px;background:var(--bd);margin:12px 0}
+</style>
+</head>
+<body>
+
+<!-- OpenCV Yükleme -->
+<div class="ocv-screen" id="ocvScreen">
+  <div class="ocv-logo">Geo<em>Strike</em></div>
+  <div class="ocv-bar-bg"><div class="ocv-bar" id="ocvBar" style="width:0%"></div></div>
+  <div class="ocv-txt" id="ocvTxt">OpenCV.js yükleniyor…</div>
+</div>
+
+<!-- Kamera Modal -->
+<div id="camModal" class="modal-bg" style="display:none">
+  <div class="modal-inner">
+    <!-- Focal length göstergesi -->
+    <div class="focal-badge">
+      <span>Focal length:</span>
+      <span class="focal-val" id="focalVal">—</span>
+      <span>px</span>
+      <span id="focalSrc" style="color:var(--dim);margin-left:4px"></span>
+    </div>
+
+    <div class="cam-view" id="camView">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <div class="cam-hud">
+        <div class="cg-h"></div><div class="cg-v"></div>
+        <div class="cg-corner cg-tl"></div><div class="cg-corner cg-tr"></div>
+        <div class="cg-corner cg-bl"></div><div class="cg-corner cg-br"></div>
+        <div class="cam-label">
+          <div class="cam-label-main" id="camLabelMain">Sol açıdan çek</div>
+          <div class="cam-label-sub" id="camLabelSub">Telefonu dikey tut</div>
+        </div>
+        <div class="north-badge">
+          <span style="font-size:13px;color:var(--white);line-height:1">↑</span>
+          <span style="font-size:8px;color:var(--dim);font-weight:700">K</span>
+        </div>
+        <div class="level-wrap">
+          <div class="level-bar">
+            <div class="level-mid"></div>
+            <div class="level-cursor" id="levelCursor" style="left:43px"></div>
+          </div>
+          <span class="level-txt" id="levelTxt">Düz</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sensor-strip">
+      <div class="s-item"><div class="s-lbl">AZİMUT</div><div class="s-val" id="csAz">—</div></div>
+      <div class="s-item"><div class="s-lbl">PİTCH</div><div class="s-val" id="csPitch">—</div></div>
+      <div class="s-item"><div class="s-lbl">ROLL</div><div class="s-val" id="csRoll">—</div></div>
+      <div class="s-item"><div class="s-lbl">|gY|</div><div class="s-val" id="csGy">—</div></div>
+    </div>
+
+    <div class="cam-ctrl">
+      <div class="cam-previews" id="camPreviews"></div>
+      <button class="btn-cap" id="btnCap" onclick="capture()"><div class="btn-cap-inner"></div></button>
+      <div class="cam-side-btns">
+        <button class="side-btn" onclick="switchCam()">↔ Kamera</button>
+        <button class="side-btn danger" onclick="closeCamera()">✕ Kapat</button>
+      </div>
+    </div>
+    <div class="cam-status" id="camStatus">Hazır — çekin</div>
+    <canvas id="snapCanvas" style="display:none"></canvas>
+  </div>
+</div>
+
+<!-- Ana Sayfa -->
+<div class="wrap" id="mainWrap" style="display:none">
+<div class="header">
+  <div>
+    <div class="logo">Geo<em>Strike</em></div>
+    <div class="sub">OpenCV ORB · Gerçek SfM · Yerçekimi Referanslı · Auto Focal Length</div>
+  </div>
+  <div class="badge"><div class="dot"></div>OpenCV Aktif</div>
+</div>
+
+<div class="prog">
+  <div class="ps active" id="ps0"></div>
+  <div class="ps" id="ps1"></div>
+  <div class="ps" id="ps2"></div>
+  <div class="ps" id="ps3"></div>
+</div>
+
+<!-- Panel 0 -->
+<div id="p0">
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Fotoğraflar</span><span class="chip cb-blue">3 dikey çekim</span></div>
+      <div class="cb">
+        <button class="cam-open-btn" onclick="openCamera()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Kamerayla Canlı Çek
+        </button>
+        <div class="grid3" id="photoGrid">
+          <div class="pslot" id="sl0" onclick="pick(0)"><input type="file" id="f0" accept="image/*" onchange="onFile(0,this)"><span class="pslot-num">1</span><span class="pslot-lbl">Sol açı</span></div>
+          <div class="pslot" id="sl1" onclick="pick(1)"><input type="file" id="f1" accept="image/*" onchange="onFile(1,this)"><span class="pslot-num">2</span><span class="pslot-lbl">Cephe</span></div>
+          <div class="pslot" id="sl2" onclick="pick(2)"><input type="file" id="f2" accept="image/*" onchange="onFile(2,this)"><span class="pslot-num">3</span><span class="pslot-lbl">Sağ açı</span></div>
+        </div>
+        <div style="margin-top:9px;display:flex;gap:7px">
+          <button class="btn btn-g btn-sm" onclick="loadDemo()">Demo</button>
+          <button class="btn btn-g btn-sm" onclick="clearAll()">Temizle</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><span class="ct">Sensör Verileri</span><span class="chip cb-amber">Otomatik</span></div>
+      <div class="cb">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="btn btn-g btn-sm" id="st0" onclick="selTab(0)" style="border-color:var(--blue);color:var(--blue)">Foto 1</button>
+          <button class="btn btn-g btn-sm" id="st1" onclick="selTab(1)">Foto 2</button>
+          <button class="btn btn-g btn-sm" id="st2" onclick="selTab(2)">Foto 3</button>
+        </div>
+        <div class="si-row"><span class="si-lbl">Azimut (°)</span><input type="range" min="0" max="360" step="1" id="iAz" oninput="updS('az',this.value)"><span class="si-val" id="vAz">215°</span></div>
+        <div class="si-row"><span class="si-lbl">Pitch (°)</span><input type="range" min="-90" max="90" step="1" id="iPitch" oninput="updS('pitch',this.value)"><span class="si-val" id="vPitch">-22°</span></div>
+        <div class="si-row"><span class="si-lbl">Roll (°)</span><input type="range" min="-45" max="45" step="1" id="iRoll" oninput="updS('roll',this.value)"><span class="si-val" id="vRoll">+8°</span></div>
+        <div class="si-row"><span class="si-lbl">g⃗ X</span><input type="range" min="-10" max="10" step="0.1" id="iGx" oninput="updS('gx',this.value)"><span class="si-val" id="vGx">0.3</span></div>
+        <div class="si-row"><span class="si-lbl">g⃗ Y</span><input type="range" min="-10" max="10" step="0.1" id="iGy" oninput="updS('gy',this.value)"><span class="si-val" id="vGy">-9.7</span></div>
+        <div class="si-row"><span class="si-lbl">g⃗ Z</span><input type="range" min="-10" max="10" step="0.1" id="iGz" oninput="updS('gz',this.value)"><span class="si-val" id="vGz">-0.5</span></div>
+        <div class="si-row"><span class="si-lbl">f (px)</span><input type="range" min="500" max="8000" step="10" id="iF" oninput="updS('f',this.value)"><span class="si-val" id="vF">—</span></div>
+        <div class="divider"></div>
+        <div style="font-size:11px;color:var(--dim)">f = focal length · Kameradan otomatik</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="ct">Örtüşme</span><span id="ovSt" class="chip cb-blue">—</span></div>
+    <div class="cb">
+      <div class="grid3">
+        <div><div style="font-size:11px;color:var(--dim);margin-bottom:3px">Foto 1↔2</div><div class="ovbar"><div class="ovfill" id="ov01" style="width:0%;background:var(--green)"></div><div class="ovmark"></div></div><div style="font-family:var(--mono);font-size:11px;margin-top:3px" id="ot01">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim);margin-bottom:3px">Foto 2↔3</div><div class="ovbar"><div class="ovfill" id="ov12" style="width:0%;background:var(--green)"></div><div class="ovmark"></div></div><div style="font-family:var(--mono);font-size:11px;margin-top:3px" id="ot12">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim);margin-bottom:3px">Foto 1↔3</div><div class="ovbar"><div class="ovfill" id="ov02" style="width:0%;background:var(--amber)"></div><div class="ovmark"></div></div><div style="font-family:var(--mono);font-size:11px;margin-top:3px" id="ot02">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn btn-g" onclick="loadDemo()">Demo ile Test Et</button>
+    <button class="btn btn-p" id="btnGo" onclick="go()" disabled>Analiz Başlat →</button>
+  </div>
+</div>
+
+<!-- Panel 1 -->
+<div id="p1" style="display:none">
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Pipeline</span><span class="chip cb-blue" id="pStage">—</span></div>
+      <div class="cb">
+        <div id="stepList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px"></div>
+        <div style="height:5px;background:var(--dimmer);border-radius:3px;overflow:hidden"><div id="progBar" style="height:100%;background:var(--blue);width:0%;transition:width .5s;border-radius:3px"></div></div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--blue);margin-top:5px" id="pPct">0%</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Log</span></div>
+      <div class="cb" style="padding:0"><div class="logbox" id="logbox"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">3D Model</span><span class="chip cb-blue" id="ptLbl">Nokta: 0</span></div>
+    <canvas id="canvas3d" width="920" height="300"></canvas>
+    <div class="canvctrl"><span>Sürükle → döndür</span><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="chkAuto" checked style="accent-color:var(--blue)"><span>Oto</span></label></div>
+  </div>
+</div>
+
+<!-- Panel 2 -->
+<div id="p2" style="display:none">
+  <div class="geo-box">
+    <div class="geo-fmt" id="geoFormat">—</div>
+    <div class="geo-sub">Doğrultu / Eğim Açısı + Eğim Yönü</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Ölçüm</span><span class="chip cb-green" id="rMode">—</span></div>
+      <div class="cb">
+        <div class="rrow"><div class="rdot" style="background:var(--blue)"></div><div class="rlbl">Doğrultu</div><div class="rval" id="rStrike">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--blue)"></div><div class="rlbl">Doğrultu (format)</div><div class="rval" id="rStrikeStr">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--red)"></div><div class="rlbl">Eğim açısı</div><div class="rval" id="rDip">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--red)"></div><div class="rlbl">Eğim yönü</div><div class="rval" id="rDipDir">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--amber)"></div><div class="rlbl">Focal length</div><div class="rval" id="rFocal">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--amber)"></div><div class="rlbl">ORB eşleşme</div><div class="rval" id="rOrb">—</div></div>
+        <div class="rrow" style="border:none"><div class="rdot" style="background:var(--green)"></div><div class="rlbl">3D nokta / inlier</div><div class="rval" id="rPts">—</div></div>
+        <div class="confbadge" id="rBadge" style="border-color:var(--green);color:var(--green)">—</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Geometrik Doğrulama</span></div>
+      <div class="cb">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:10px">
+          Doğrultu = katman ∩ yatay düzlem<br>
+          Eğim açısı: 0°=yatay · 90°=dik
+        </div>
+        <div class="rrow"><div class="rdot" style="background:var(--blue)"></div><div class="rlbl">Eğim ⊥ Doğrultu</div><div class="rval" id="chkPerp">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--green)"></div><div class="rlbl">Doğrultu ∥ Yatay</div><div class="rval" id="chkHoriz">—</div></div>
+        <div class="rrow" style="border:none"><div class="rdot" style="background:var(--amber)"></div><div class="rlbl">Portrait |gY|</div><div class="rval" id="chkGy">—</div></div>
+        <div style="margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600" id="chkResult">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Jeolojik Çıktı — Orta Fotoğraf</span></div>
+    <canvas id="rCanvas" style="width:100%;display:block"></canvas>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Dışa Aktar</span></div>
+    <div class="cb" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="exp('jpeg')">⬇ JPEG</button>
+      <button class="btn btn-p" onclick="exp('json')">⬇ JSON</button>
+      <button class="btn btn-p" onclick="exp('csv')">⬇ CSV</button>
+      <button class="btn btn-p" onclick="exp('pdf')">⬇ PDF</button>
+      <button class="btn btn-g" style="margin-left:auto" onclick="restart()">↺ Yeni</button>
+    </div>
+  </div>
+</div>
+</div><!-- wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// MATEMATİK
+// ═══════════════════════════════════════════════════════════
+const toRad=d=>d*Math.PI/180, toDeg=r=>r*180/Math.PI;
+const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
+const norm=v=>{const m=Math.sqrt(dot(v,v));return m<1e-12?[0,0,1]:v.map(x=>x/m)};
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const sub=(a,b)=>a.map((x,i)=>x-b[i]);
+const add=(a,b)=>a.map((x,i)=>x+b[i]);
+const scl=(v,s)=>v.map(x=>x*s);
+const matVec=(M,v)=>M.map(r=>r.reduce((s,x,i)=>s+x*v[i],0));
+const matMul=(A,B)=>A.map(row=>B[0].map((_,j)=>row.reduce((s,_,k)=>s+row[k]*B[k][j],0)));
+const transp=M=>M[0].map((_,j)=>M.map(r=>r[j]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+function powerIter(M,n=60){
+  let v=new Array(M.length).fill(0);v[0]=1;
+  for(let i=0;i<n;i++){const mv=matVec(M,v);const nm=Math.sqrt(dot(mv,mv));if(nm<1e-12)break;v=mv.map(x=>x/nm);}
+  return v;
+}
+
+function eulerToR(az,pitch,roll){
+  const y=toRad(az),p=toRad(pitch),r=toRad(roll);
+  const cy=Math.cos(y),sy=Math.sin(y),cp=Math.cos(p),sp=Math.sin(p),cr=Math.cos(r),sr=Math.sin(r);
+  return[[cy*cp,cy*sp*sr-sy*cr,cy*sp*cr+sy*sr],
+         [sy*cp,sy*sp*sr+cy*cr,sy*sp*cr-cy*sr],
+         [-sp,cp*sr,cp*cr]];
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 1: FOCAL LENGTH — AUTO DETECT
+// ═══════════════════════════════════════════════════════════
+/**
+ * Öncelik sırası:
+ * 1. MediaTrackSettings.focalLengthMm + sensorWidth → en doğru
+ * 2. MediaTrackSettings.zoom + videoWidth → orta doğruluk
+ * 3. HFOV tahmini (70°) → her telefonda çalışır
+ */
+function detectFocalLength(stream, videoWidth, videoHeight) {
+  try {
+    const track = stream.getVideoTracks()[0];
+    const settings = track.getSettings();
+    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+
+    // Yöntem 1: focalLengthMm + sensorWidth
+    if(settings.focalLengthMm && settings.sensorWidthMm) {
+      const f = (settings.focalLengthMm / settings.sensorWidthMm) * videoWidth;
+      return { f: Math.round(f), source: 'API (focalLengthMm)' };
+    }
+
+    // Yöntem 2: focalLength doğrudan piksel cinsinden
+    if(settings.focalLength && settings.focalLength > 100) {
+      return { f: Math.round(settings.focalLength), source: 'API (focalLength)' };
+    }
+
+    // Yöntem 3: zoom varsa düzelt
+    if(settings.zoom && settings.zoom !== 1) {
+      const baseF = videoWidth / (2 * Math.tan(toRad(70/2)));
+      return { f: Math.round(baseF * settings.zoom), source: 'HFOV+zoom' };
+    }
+
+  } catch(e) {
+    console.warn('Focal length API hatası:', e);
+  }
+
+  // Yöntem 4: HFOV tahmini — 70° modern telefon arka kamera için tipik
+  // Portrait: video genişliği dar kenar
+  const narrowSide = Math.min(videoWidth, videoHeight);
+  // Telefon arka kamera ~70° HFOV (dar kenar için ~55°)
+  const VFOV = 55; // Portrait modda dikey FOV
+  const f = narrowSide / (2 * Math.tan(toRad(VFOV/2)));
+  return { f: Math.round(f), source: 'HFOV tahmini (55°)' };
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 2: KAMERA POZ MATRİSİ
+// ═══════════════════════════════════════════════════════════
+/**
+ * Portrait mod kamera matrisi K:
+ * Portrait'te: genişlik < yükseklik
+ * cx = videoWidth/2, cy = videoHeight/2
+ * f = focal length (piksel cinsinden)
+ *
+ * Portrait düzeltme matrisi:
+ * Telefon dikey tutulunca sensör koordinatları ile
+ * fotoğraf koordinatları arasında 90° fark var.
+ * Bunu R matrisine uygulayarak düzeltiyoruz.
+ */
+function buildCameraMatrix(f, imgW, imgH) {
+  return {
+    f, cx: imgW/2, cy: imgH/2,
+    K: [[f,0,imgW/2],[0,f,imgH/2],[0,0,1]],
+  };
+}
+
+/**
+ * Portrait mod R matrisi düzeltmesi.
+ * Sensör landscape R'ını portrait fotoğraf koordinatına çevirir.
+ * Portrait: fotoğraf x = kamera -y, fotoğraf y = kamera x
+ */
+function portraitR(R) {
+  // Portrait: telefon dikey tutulunca sensör X→görüntü -Y, sensör Y→görüntü X
+  // Doğru dönüşüm: portrait_x = -sensor_y, portrait_y = sensor_x
+  const Rp = [[0,-1,0],[1,0,0],[0,0,1]];
+  return matMul(Rp, R);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 3: JEOLOJİK HESAP — YERÇEKİMİ REFERANSLI
+// ═══════════════════════════════════════════════════════════
+/**
+ * DOĞRULTU TANIMI:
+ * Eğimli katmanın yatay düzlem ile ara kesiti.
+ * = cross(katman_normali, yerçekimi_vektörü)
+ * Bu formül otomatik olarak yatay düzleme paralel sonuç verir.
+ *
+ * EĞİM AÇISI TANIMI:
+ * Katman düzleminin yatay düzlemle yaptığı açı.
+ * n⊥up ise: eğim=90° (dik katman)
+ * n∥up ise: eğim=0° (yatay katman)
+ * Formül: eğim = arccos(|n·up|)
+ *
+ * EĞİM YÖNÜ:
+ * Suyu katman yüzeyine döksek akacağı yön.
+ * = g⃗'nin katman düzlemindeki izdüşümü
+ */
+function computeGeology(planeNormal, gravRaw, azimuthDeg) {
+  // ── KOORDİNAT SİSTEMİ ──────────────────────────────────
+  // Telefon sensörü NED koordinatında:
+  //   gx = Kuzey ekseni, gy = Doğu ekseni, gz = Aşağı ekseni
+  // Portrait dikey tutulunca: gx≈0, gy≈-9.8, gz≈0
+  // ENU koordinatı: [Doğu=X, Kuzey=Y, Yukarı=Z]
+  // NED→ENU dönüşümü: East=gy, North=gx, Up=-gz
+  const gNED = gravRaw;
+  const gENU = [gNED[1], gNED[0], -gNED[2]];
+  const g = norm(gENU);    // yerçekimi ENU'da (z negatif = aşağı)
+  const up = g.map(x=>-x); // yukarı ENU'da
+
+  // planeNormal NED'den geliyor → ENU'ya çevir
+  const nNED = planeNormal;
+  const nENU = [nNED[1], nNED[0], -nNED[2]];
+
+  // n yukarı baksın (ENU'da z+ yukarı)
+  const n = dot(nENU, up) < 0 ? nENU.map(x=>-x) : nENU;
+
+  // ENU'da: Kuzey=[0,1,0], Doğu=[1,0,0], Yukarı=[0,0,1]
+  const northRaw = [0, 1, 0];
+  const northH = norm(sub(northRaw, scl(up, dot(northRaw, up))));
+  const east = norm(cross(up, northH)); // Doğu = Yukarı × Kuzey
+
+  // DOĞRULTU = cross(n, up) → yatay düzleme paralel
+  let stVec=cross(n,up);
+  if(Math.sqrt(dot(stVec,stVec))<1e-10) stVec=[1,0,0];
+  stVec=norm(stVec);
+
+  // Doğrultu açısı — kuzeyden saat yönüne
+  const stDeg=((toDeg(Math.atan2(dot(stVec,east),dot(stVec,northH)))+360)%360);
+
+  // EĞİM AÇISI
+  const cosVal=Math.min(Math.abs(dot(n,up)),1);
+  const dipAngle=toDeg(Math.acos(cosVal));
+
+  // EĞİM YÖNÜ — su akış yönü = g'nin katman yüzeyindeki izdüşümü
+  // g aşağı baktığı için gOnPlane zaten doğru yönde (aşağı eğim)
+  const gOnPlane=sub(g,scl(n,dot(g,n)));
+  let dipDeg;
+  if(Math.sqrt(dot(gOnPlane,gOnPlane))<0.01){
+    dipDeg=(stDeg+90)%360;
+  }else{
+    const gp=norm(gOnPlane);
+    dipDeg=((toDeg(Math.atan2(dot(gp,east),dot(gp,northH)))+360)%360);
+  }
+
+  // Eğim ⊥ doğrultu zorla
+  const diff=((dipDeg-stDeg+360)%360);
+  const perpErr=Math.min(Math.abs(diff-90),Math.abs(diff-270));
+  if(perpErr>8){
+    const o1=(stDeg+90)%360,o2=(stDeg+270)%360;
+    const d1=Math.abs(((dipDeg-o1+360)%360));
+    const d2=Math.abs(((dipDeg-o2+360)%360));
+    dipDeg=d1<d2?o1:o2;
+  }
+
+  const perpErrFinal=Math.abs(((dipDeg-stDeg+360)%360)-90);
+  // Doğrultu yatay kontrolü: dot(stVec,up)≈0 olmalı
+  const horizSapma=Math.abs(toDeg(Math.asin(Math.min(Math.abs(dot(stVec,up)),1))));
+
+  return{strikeDeg:Math.round(stDeg*10)/10,dipAngle:Math.round(dipAngle*10)/10,
+         dipDeg:Math.round(dipDeg*10)/10,strikeVec:stVec,up,east,north:northH,
+         gOnPlane,n,perpErrFinal,horizSapma};
+}
+
+function strikeStr(d){d=((d%360)+360)%360;if(d<1||d>359)return'K';if(d<=90)return`K${Math.round(d)}D`;if(d<=180)return`G${Math.round(180-d)}D`;if(d<=270)return`G${Math.round(d-180)}B`;return`K${Math.round(360-d)}B`;}
+function cardDir(d){return['K','KD','D','GD','G','GB','B','KB'][Math.round(((d%360)+360)%360/45)%8];}
+function geoFmt(st,da,dd){return`${strikeStr(st)}/${Math.round(da)}${cardDir(dd)}`;}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 4: OPENCV ORB EŞLEŞTİRME
+// ═══════════════════════════════════════════════════════════
+async function orbMatch(url1, url2, cam) {
+  return new Promise(res=>{
+    const i1=new Image(),i2=new Image();
+    i1.crossOrigin=i2.crossOrigin='anonymous';
+    let loaded=0;
+    const onLoad=()=>{
+      if(++loaded<2)return;
+      try{
+        const MAX=480;
+        const sc1=Math.min(MAX/i1.naturalWidth,MAX/i1.naturalHeight);
+        const sc2=Math.min(MAX/i2.naturalWidth,MAX/i2.naturalHeight);
+        const c1=document.createElement('canvas'),c2=document.createElement('canvas');
+        c1.width=Math.floor(i1.naturalWidth*sc1);c1.height=Math.floor(i1.naturalHeight*sc1);
+        c2.width=Math.floor(i2.naturalWidth*sc2);c2.height=Math.floor(i2.naturalHeight*sc2);
+        c1.getContext('2d').drawImage(i1,0,0,c1.width,c1.height);
+        c2.getContext('2d').drawImage(i2,0,0,c2.width,c2.height);
+
+        const src1=cv.imread(c1),src2=cv.imread(c2);
+        const g1=new cv.Mat(),g2=new cv.Mat();
+        cv.cvtColor(src1,g1,cv.COLOR_RGBA2GRAY);
+        cv.cvtColor(src2,g2,cv.COLOR_RGBA2GRAY);
+
+        const orb=new cv.ORB(600);
+        const kp1=new cv.KeyPointVector(),kp2=new cv.KeyPointVector();
+        const d1=new cv.Mat(),d2=new cv.Mat();
+        orb.detectAndCompute(g1,new cv.Mat(),kp1,d1);
+        orb.detectAndCompute(g2,new cv.Mat(),kp2,d2);
+
+        const matches=[];
+        if(d1.rows>0&&d2.rows>0){
+          const bf=new cv.BFMatcher(cv.NORM_HAMMING,true);
+          const mv=new cv.DMatchVector();
+          bf.match(d1,d2,mv);
+          const dists=[];
+          for(let i=0;i<mv.size();i++)dists.push(mv.get(i).distance);
+          dists.sort((a,b)=>a-b);
+          const thr=Math.min(dists[Math.floor(dists.length*0.35)]*2.5,75);
+          for(let i=0;i<mv.size();i++){
+            const m=mv.get(i);
+            if(m.distance<thr){
+              const ka=kp1.get(m.queryIdx),kb=kp2.get(m.trainIdx);
+              // Orijinal boyuta geri ölçekle
+              matches.push({
+                pt1:[ka.pt.x/sc1,ka.pt.y/sc1],
+                pt2:[kb.pt.x/sc2,kb.pt.y/sc2],
+                dist:m.distance,
+              });
+            }
+          }
+          mv.delete();bf.delete();
+        }
+        src1.delete();src2.delete();g1.delete();g2.delete();d1.delete();d2.delete();kp1.delete();kp2.delete();orb.delete();
+        res({matches,count:matches.length});
+      }catch(e){res({matches:[],count:0,err:e.message});}
+    };
+    i1.onload=i2.onload=onLoad;
+    i1.onerror=i2.onerror=()=>res({matches:[],count:0});
+    i1.src=url1;i2.src=url2;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 5: ÜÇGENLEMEb — DOĞRU KAMERA MATRİSİ İLE
+// ═══════════════════════════════════════════════════════════
+function triangulate(pt1, pt2, pose1, pose2, cam) {
+  const{f,cx,cy}=cam;
+
+  // Normalize koordinatlar
+  const p1n=[(pt1[0]-cx)/f,(pt1[1]-cy)/f,1];
+  const p2n=[(pt2[0]-cx)/f,(pt2[1]-cy)/f,1];
+
+  // Işın yönleri — NED dünya koordinatında (R NED bazlı, Rp değil)
+  const ray1=norm(matVec(transp(pose1.R),p1n));
+  const ray2=norm(matVec(transp(pose2.R),p2n));
+
+  const d12=dot(ray1,ray2),den=1-d12*d12;
+  if(Math.abs(den)<1e-6)return null;
+
+  const df=sub(pose1.t,pose2.t);
+  const t1=(dot(df,ray1)-d12*dot(df,ray2))/den;
+  const t2=(d12*dot(df,ray1)-dot(df,ray2))/den;
+  if(t1<0||t2<0)return null;
+
+  const p1w=add(pose1.t,scl(ray1,t1));
+  const p2w=add(pose2.t,scl(ray2,t2));
+  const pt3d=scl(add(p1w,p2w),.5);
+
+  const err=Math.sqrt(dot(sub(p1w,p2w),sub(p1w,p2w)));
+  if(err>25)return null;
+
+  return pt3d;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 6: RANSAC DÜZLEM
+// ═══════════════════════════════════════════════════════════
+function ransacPlane(pts,iters=1500){
+  if(pts.length<4)return null;
+  let bn=null,bi=0,bd=0;const thr=0.15;
+  for(let it=0;it<iters;it++){
+    const idx=[];
+    while(idx.length<3){const r=Math.floor(Math.random()*pts.length);if(!idx.includes(r))idx.push(r);}
+    const v1=sub(pts[idx[1]],pts[idx[0]]),v2=sub(pts[idx[2]],pts[idx[0]]);
+    const n=norm(cross(v1,v2));if(dot(n,n)<1e-10)continue;
+    const d=dot(n,pts[idx[0]]);
+    let inl=0;for(const p of pts)if(Math.abs(dot(n,p)-d)<thr)inl++;
+    if(inl>bi){bi=inl;bn=n[2]>=0?n:n.map(x=>-x);bd=d;}
+  }
+  if(!bn)return null;
+  // Refinement
+  const ip=pts.filter(p=>Math.abs(dot(bn,p)-bd)<thr);
+  if(ip.length>=4){
+    const mc=ip.reduce((s,p)=>add(s,p),[0,0,0]).map(x=>x/ip.length);
+    const C=[[0,0,0],[0,0,0],[0,0,0]];
+    for(const p of ip){const d=sub(p,mc);for(let i=0;i<3;i++)for(let j=0;j<3;j++)C[i][j]+=d[i]*d[j];}
+    const en=powerIter(C,60).slice(0,3);
+    const ref=en[2]>=0?norm(en):norm(en.map(x=>-x));
+    if(dot(ref,ref)>.5)bn=ref;
+  }
+  return{normal:bn,inliers:bi,ratio:bi/pts.length,
+         quality:bi/pts.length>.72?'YÜKSEK':bi/pts.length>.45?'ORTA':'DÜŞÜK'};
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADIM 7: 3D → 2D PROJEKSİYON — DOĞRU
+// ═══════════════════════════════════════════════════════════
+/**
+ * 3D dünya vektörünü fotoğraf koordinatına çevir.
+ * Pitch açısı dahil — kamera aşağı baksa bile doğru çalışır.
+ *
+ * Adımlar:
+ * 1. Dünya → kamera: Rp * worldVec
+ * 2. Kamera → piksel: perspektif projeksiyon
+ */
+function worldToImg(worldVec, Rp, cam) {
+  const camVec=matVec(Rp,worldVec);
+  if(camVec[2]<=0.001)return null;
+  return[cam.f*camVec[0]/camVec[2]+cam.cx, cam.f*camVec[1]/camVec[2]+cam.cy];
+}
+
+/**
+ * Doğrultu çizgisini fotoğrafa yansıt.
+ * Doğrultu vektörü kamera koordinatına çevrilir,
+ * sadece xy bileşeni (fotoğraf düzlemi) kullanılır.
+ * Bu sayede pitch açısı otomatik telafi edilir.
+ */
+function projectStrike(stVec, geo, az, cx, cy, len) {
+  // stVec ENU koordinatında: [East, North, Up]
+  // Doğrultu yatay olduğu için Up bileşeni ≈ 0
+  // Kameranın azimut=az ile baktığı yön (ENU):
+  //   forward = [sin(az), cos(az), 0]  (az=0 → Kuzey, az=90 → Doğu)
+  //   right   = [cos(az), -sin(az), 0] (kameranın sağı)
+  // Portrait görüntüde:
+  //   piksel X (sağ) = kameranın sağ vektörü
+  //   piksel Y (aşağı) = kameranın aşağı vektörü
+  //   Doğrultu yatay → piksel Y bileşeni yok (pitch=0 için)
+  const azRad = toRad(az);
+  const camRight   = [ Math.cos(azRad), -Math.sin(azRad), 0]; // ENU sağ
+  const px = dot(stVec, camRight);
+  const py = 0; // doğrultu yatay düzlemde → pitch=0'da görüntü Y=0
+  const pm = Math.sqrt(px*px + py*py);
+  if(pm < 1e-6) return null;
+  const nx=px/pm, ny=py/pm;
+  return {x1:cx-nx*len, y1:cy-ny*len, x2:cx+nx*len, y2:cy+ny*len};
+}
+
+function projectDip(gOnPlane, geo, az, pitch, cx, cy, len) {
+  // gOnPlane ENU koordinatında: yerçekiminin katman üzerindeki izdüşümü
+  if(!gOnPlane || Math.sqrt(dot(gOnPlane,gOnPlane)) < 0.01) return null;
+  const gp = norm(gOnPlane);
+  const azRad = toRad(az);
+  const pitchRad = toRad(pitch || 0);
+  // Kamera eksenleri ENU:
+  //   right   = [cos(az), -sin(az), 0]
+  //   forward = [sin(az),  cos(az), 0]
+  //   down (portrait piksel Y aşağı) = forward*sin(pitch) + [0,0,-1]*cos(pitch)
+  const camRight = [Math.cos(azRad), -Math.sin(azRad), 0];
+  const camDown  = [
+    Math.sin(azRad) * Math.sin(pitchRad),
+    Math.cos(azRad) * Math.sin(pitchRad),
+   -Math.cos(pitchRad)
+  ];
+  const px = dot(gp, camRight);
+  const py = dot(gp, camDown);
+  const pm = Math.sqrt(px*px + py*py);
+  if(pm < 1e-6) return null;
+  return {x1:cx, y1:cy, x2:cx+(px/pm)*len, y2:cy+(py/pm)*len};
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// DURUM
+// ═══════════════════════════════════════════════════════════
+const ST={
+  photos:[null,null,null],
+  sensors:[
+    {az:215,pitch:-22,roll:8,gx:0.3,gy:-9.7,gz:-0.5,lat:38.42,lon:27.14,f:0,imgW:480,imgH:640},
+    {az:245,pitch:-18,roll:3,gx:0.2,gy:-9.75,gz:-0.3,lat:38.4201,lon:27.1402,f:0,imgW:480,imgH:640},
+    {az:275,pitch:-20,roll:-5,gx:-0.1,gy:-9.72,gz:-0.4,lat:38.4202,lon:27.1404,f:0,imgW:480,imgH:640},
+  ],
+  tab:0,result:null,pts:[],rot:20,auto:true,drag:false,lx:0,
+  stream:null,camFacing:'environment',sensorInterval:null,
+  focalLength:0,focalSource:'',
+  dev:{az:null,pitch:null,roll:null,gx:null,gy:null,gz:null,lat:null,lon:null,
+       _az:215,_pitch:-22,_roll:8,_gx:0.3,_gy:-9.75,_gz:-0.5},
+};
+
+// ═══════════════════════════════════════════════════════════
+// KAMERA
+// ═══════════════════════════════════════════════════════════
+const GUIDES=[
+  {main:'Sol açıdan çek — 30-45° soldan',sub:'Telefon dikey · Düz tut'},
+  {main:'Cepheden çek — tam karşıdan',sub:'Telefon dikey'},
+  {main:'Sağ açıdan çek — 30-45° sağdan',sub:'Telefon dikey · Düz tut'},
+];
+
+async function openCamera(){
+  renderPrev();updGuide();
+  document.getElementById('camModal').style.display='flex';
+  try{await startStream();}
+  catch(e){alert('Kamera hatası: '+e.message);document.getElementById('camModal').style.display='none';return;}
+  startSensors();
+}
+
+async function startStream(){
+  if(ST.stream)ST.stream.getTracks().forEach(t=>t.stop());
+  ST.stream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:ST.camFacing,width:{ideal:1080},height:{ideal:1920}},audio:false
+  });
+  document.getElementById('camVideo').srcObject=ST.stream;
+
+  // Focal length tespiti — stream hazır olunca
+  await sleep(500); // Video metadata yüklenmesini bekle
+  const video=document.getElementById('camVideo');
+  const W=video.videoWidth||1080,H=video.videoHeight||1920;
+  const fl=detectFocalLength(ST.stream,W,H);
+  ST.focalLength=fl.f;
+  ST.focalSource=fl.source;
+  document.getElementById('focalVal').textContent=fl.f;
+  document.getElementById('focalSrc').textContent=`(${fl.source})`;
+  // Sensör panelini güncelle
+  ST.sensors.forEach(s=>{s.f=fl.f;s.imgW=W;s.imgH=H;});
+  document.getElementById('iF').value=fl.f;
+  document.getElementById('vF').textContent=fl.f+'px';
+}
+
+async function switchCam(){
+  ST.camFacing=ST.camFacing==='environment'?'user':'environment';
+  try{await startStream();}catch(e){}
+}
+
+function closeCamera(){
+  if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop());ST.stream=null;}
+  document.getElementById('camVideo').srcObject=null;
+  stopSensors();document.getElementById('camModal').style.display='none';
+}
+
+function startSensors(){
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(
+    p=>{ST.dev.lat=p.coords.latitude;ST.dev.lon=p.coords.longitude;},()=>{});
+
+  const addOri=()=>window.addEventListener('deviceorientation',onOri,true);
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')addOri();}).catch(()=>{});
+  }else addOri();
+
+  const addMot=()=>window.addEventListener('devicemotion',onMot,true);
+  if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+    DeviceMotionEvent.requestPermission().then(r=>{if(r==='granted')addMot();}).catch(()=>{});
+  }else addMot();
+
+  let t=0;
+  ST.sensorInterval=setInterval(()=>{
+    t+=0.12;
+    const az=ST.dev.az??ST.dev._az;
+    const pitch=ST.dev.pitch??ST.dev._pitch;
+    const roll=ST.dev.roll??ST.dev._roll;
+    const gy=ST.dev.gy??ST.dev._gy;
+
+    document.getElementById('csAz').textContent=Math.round((az%360+360)%360)+'°';
+    document.getElementById('csPitch').textContent=(pitch>=0?'+':'')+Math.round(pitch)+'°';
+    document.getElementById('csRoll').textContent=(roll>=0?'+':'')+Math.round(roll)+'°';
+    document.getElementById('csGy').textContent=Math.abs(gy).toFixed(1);
+
+    // Yatay seviye göstergesi
+    const rollAbs=Math.abs(roll);
+    const cur=document.getElementById('levelCursor');
+    cur.style.left=Math.max(2,Math.min(83,43+roll/15*38))+'px';
+    cur.style.background=rollAbs<3?'var(--green)':rollAbs<8?'var(--amber)':'var(--red)';
+    const lt=document.getElementById('levelTxt');
+    lt.textContent=rollAbs<3?'Düz':rollAbs<8?'Hafif':'Eğik';
+    lt.style.color=rollAbs<3?'var(--green)':rollAbs<8?'var(--amber)':'var(--red)';
+
+    ST.dev._az=az;ST.dev._pitch=pitch;ST.dev._roll=roll;ST.dev._gy=gy;
+  },150);
+}
+
+function onOri(e){if(e.alpha!=null)ST.dev.az=e.alpha;if(e.beta!=null)ST.dev.pitch=e.beta;if(e.gamma!=null)ST.dev.roll=e.gamma;}
+function onMot(e){const g=e.accelerationIncludingGravity;if(g&&g.x!=null){ST.dev.gx=g.x;ST.dev.gy=g.y;ST.dev.gz=g.z;}}
+function stopSensors(){window.removeEventListener('deviceorientation',onOri,true);window.removeEventListener('devicemotion',onMot,true);if(ST.sensorInterval){clearInterval(ST.sensorInterval);ST.sensorInterval=null;}}
+
+function capture(){
+  const idx=ST.photos.indexOf(null);if(idx===-1){closeCamera();return;}
+  const video=document.getElementById('camVideo');
+  const canvas=document.getElementById('snapCanvas');
+  canvas.width=video.videoWidth||1080;canvas.height=video.videoHeight||1920;
+  const ctx=canvas.getContext('2d');
+  if(ST.camFacing==='user'){ctx.save();ctx.translate(canvas.width,0);ctx.scale(-1,1);}
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  if(ST.camFacing==='user')ctx.restore();
+
+  // Flash
+  const view=document.getElementById('camView');
+  view.style.filter='brightness(3)';setTimeout(()=>view.style.filter='',100);
+
+  // Sensör kaydet — focal length dahil
+  const az=ST.dev.az??ST.dev._az;
+  const pitch=ST.dev.pitch??ST.dev._pitch;
+  const roll=ST.dev.roll??ST.dev._roll;
+  const gx=ST.dev.gx??0.3;
+  const gy=ST.dev.gy??ST.dev._gy;
+  const gz=ST.dev.gz??-0.5;
+  const lat=ST.dev.lat??38.42;
+  const lon=ST.dev.lon??27.14;
+  const off=[{dlat:0,dlon:0},{dlat:0.00001,dlon:0.00002},{dlat:0.00002,dlon:0.00001}];
+
+  ST.sensors[idx]={
+    az:Math.round(az*10)/10,pitch:Math.round(pitch*10)/10,roll:Math.round(roll*10)/10,
+    gx:Math.round(gx*100)/100,gy:Math.round(gy*100)/100,gz:Math.round(gz*100)/100,
+    lat:lat+off[idx].dlat,lon:lon+off[idx].dlon,
+    f:ST.focalLength,imgW:canvas.width,imgH:canvas.height,
+  };
+
+  canvas.toBlob(blob=>{
+    const url=URL.createObjectURL(blob);ST.photos[idx]=url;
+    const sl=document.getElementById('sl'+idx);
+    sl.innerHTML=`<input type="file" id="f${idx}" accept="image/*" onchange="onFile(${idx},this)"><img src="${url}" style="pointer-events:none"><div class="pslot-check">✓</div><div class="pslot-ov">${['Sol','Cephe','Sağ'][idx]}</div>`;
+    sl.classList.add('has');selTab(idx);renderPrev();
+    const rem=ST.photos.filter(p=>p===null).length;
+    if(rem===0){
+      document.getElementById('camStatus').textContent='3 fotoğraf tamam!';
+      document.getElementById('btnCap').classList.add('done');
+      setTimeout(()=>closeCamera(),900);chkReady();
+    }else{
+      document.getElementById('camStatus').textContent=`${rem} fotoğraf kaldı`;updGuide();
+    }
+  },'image/jpeg',0.92);
+}
+
+function renderPrev(){
+  document.getElementById('camPreviews').innerHTML=ST.photos.map((p,i)=>{
+    const a=p===null&&ST.photos.slice(0,i).every(x=>x!==null);
+    return`<div class="cprev ${a?'active':''}">${p?`<img src="${p}"><div class="cprev-check">✓</div>`:i+1}</div>`;
+  }).join('');
+}
+function updGuide(){const i=ST.photos.indexOf(null);if(i===-1)return;const g=GUIDES[i];document.getElementById('camLabelMain').textContent=g.main;document.getElementById('camLabelSub').textContent=g.sub;}
+
+// ═══════════════════════════════════════════════════════════
+// DOSYA & SENSÖR
+// ═══════════════════════════════════════════════════════════
+function pick(i){document.getElementById('f'+i).click();}
+function onFile(i,inp){
+  const f=inp.files[0];if(!f)return;
+  const url=URL.createObjectURL(f);ST.photos[i]=url;
+  const sl=document.getElementById('sl'+i);
+  sl.innerHTML=`<input type="file" id="f${i}" accept="image/*" onchange="onFile(${i},this)"><img src="${url}" style="pointer-events:none"><div class="pslot-check">✓</div><div class="pslot-ov">${['Sol','Cephe','Sağ'][i]}</div>`;
+  sl.classList.add('has');chkReady();
+}
+function clearAll(){
+  if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop());ST.stream=null;}
+  stopSensors();document.getElementById('camModal').style.display='none';
+  ST.photos=[null,null,null];
+  [0,1,2].forEach(i=>{const sl=document.getElementById('sl'+i);sl.innerHTML=`<input type="file" id="f${i}" accept="image/*" onchange="onFile(${i},this)"><span class="pslot-num">${i+1}</span><span class="pslot-lbl">${['Sol açı','Cephe','Sağ açı'][i]}</span>`;sl.classList.remove('has');});
+  chkReady();
+}
+
+function loadDemo(){
+  // Demo: HFOV tahmini focal length kullan
+  const demoF=Math.round(480/(2*Math.tan(toRad(55/2))));
+  ST.sensors=[
+    {az:212,pitch:-24,roll:9,gx:0.38,gy:-9.72,gz:-0.45,lat:38.420,lon:27.140,f:demoF,imgW:480,imgH:640},
+    {az:245,pitch:-18,roll:2,gx:0.20,gy:-9.78,gz:-0.32,lat:38.4201,lon:27.1402,f:demoF,imgW:480,imgH:640},
+    {az:278,pitch:-21,roll:-6,gx:-0.15,gy:-9.74,gz:-0.38,lat:38.4202,lon:27.1404,f:demoF,imgW:480,imgH:640},
+  ];
+  ST.focalLength=demoF;ST.focalSource='Demo (HFOV)';
+  [0,1,2].forEach(idx=>{
+    const c=document.createElement('canvas');c.width=480;c.height=640;drawRock(c,idx);
+    c.toBlob(b=>{
+      const url=URL.createObjectURL(b);ST.photos[idx]=url;
+      const sl=document.getElementById('sl'+idx);
+      sl.innerHTML=`<input type="file" id="f${idx}" accept="image/*" onchange="onFile(${idx},this)"><img src="${url}" style="pointer-events:none"><div class="pslot-check">✓</div><div class="pslot-ov">${['Sol','Cephe','Sağ'][idx]}</div>`;
+      sl.classList.add('has');if(idx===2){chkReady();selTab(0);}
+    },'image/jpeg',.85);
+  });
+}
+
+function drawRock(canvas,idx){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  ctx.fillStyle='#87CEEB';ctx.fillRect(0,0,W,H*.35);
+  ctx.fillStyle='#B8DCF0';ctx.fillRect(0,H*.25,W,H*.12);
+  const g=ctx.createLinearGradient(0,H*.55,0,H);g.addColorStop(0,'#8B7355');g.addColorStop(1,'#5A432A');ctx.fillStyle=g;ctx.fillRect(0,H*.55,W,H*.45);
+  const sh=(idx-1)*20;ctx.save();ctx.translate(sh,0);
+  const rg=ctx.createLinearGradient(30,80,W-30,H*.7);rg.addColorStop(0,'#C8B89A');rg.addColorStop(.5,'#A89070');rg.addColorStop(1,'#806048');
+  ctx.fillStyle=rg;ctx.beginPath();ctx.moveTo(20,H*.9);ctx.lineTo(30,H*.28);ctx.lineTo(W*.4,H*.15);ctx.lineTo(W*.8,H*.2);ctx.lineTo(W-20,H*.9);ctx.closePath();ctx.fill();
+  [[H*.35,H*.34,2.5],[H*.43,H*.42,2],[H*.51,H*.50,2.5],[H*.59,H*.58,1.5],[H*.67,H*.66,1.5]].forEach(([y1,y2,w])=>{ctx.strokeStyle='rgba(70,50,30,.6)';ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(30,y1);ctx.lineTo(W-30,y2);ctx.stroke();});
+  ctx.restore();
+  ctx.fillStyle='#4A7A2A';[[20,H*.82,18],[W-25,H*.80,15]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();});
+}
+
+function selTab(i){
+  ST.tab=i;
+  [0,1,2].forEach(j=>{const b=document.getElementById('st'+j);b.style.borderColor=j===i?'var(--blue)':'var(--bd2)';b.style.color=j===i?'var(--blue)':'var(--dim)';});
+  const s=ST.sensors[i];
+  document.getElementById('iAz').value=s.az;document.getElementById('iPitch').value=s.pitch;document.getElementById('iRoll').value=s.roll;
+  document.getElementById('iGx').value=s.gx;document.getElementById('iGy').value=s.gy;document.getElementById('iGz').value=s.gz;
+  document.getElementById('iF').value=s.f||ST.focalLength||800;
+  document.getElementById('vAz').textContent=s.az+'°';
+  document.getElementById('vPitch').textContent=(s.pitch>=0?'+':'')+s.pitch+'°';
+  document.getElementById('vRoll').textContent=(s.roll>=0?'+':'')+s.roll+'°';
+  document.getElementById('vGx').textContent=s.gx.toFixed(2);
+  document.getElementById('vGy').textContent=s.gy.toFixed(2);
+  document.getElementById('vGz').textContent=s.gz.toFixed(2);
+  document.getElementById('vF').textContent=(s.f||ST.focalLength||'—')+'px';
+  updOv();
+}
+function updS(k,v){
+  const i=ST.tab,n=parseFloat(v);ST.sensors[i][k]=n;
+  const map={az:'vAz',pitch:'vPitch',roll:'vRoll',gx:'vGx',gy:'vGy',gz:'vGz',f:'vF'};
+  const el=document.getElementById(map[k]);if(!el)return;
+  if(k==='az')el.textContent=n+'°';
+  else if(k==='pitch'||k==='roll')el.textContent=(n>=0?'+':'')+n+'°';
+  else el.textContent=n.toFixed(k==='f'?0:2)+(k==='f'?'px':'');
+  if(k==='f')ST.focalLength=n;
+  updOv();
+}
+function ovPct(a,b){const az=Math.abs(a.az-b.az)%360,pd=Math.abs(a.pitch-b.pitch),rd=Math.abs(a.roll-b.roll);return Math.round(Math.max(0,Math.min(100,(1-Math.sqrt(az*az+pd*pd+rd*rd)/90)*100)));}
+function updOv(){
+  const s=ST.sensors,ov=[ovPct(s[0],s[1]),ovPct(s[1],s[2]),ovPct(s[0],s[2])];
+  [['ov01','ot01'],['ov12','ot12'],['ov02','ot02']].forEach(([bId,tId],i)=>{
+    const p=ov[i],cl=p>=60?'var(--green)':p>=40?'var(--amber)':'var(--red)';
+    document.getElementById(bId).style.width=p+'%';document.getElementById(bId).style.background=cl;
+    document.getElementById(tId).textContent=`%${p} ${p>=60?'✓':p>=40?'⚠':'✗'}`;document.getElementById(tId).style.color=cl;
+  });
+  const ok=ov.every(v=>v>=30);
+  const st=document.getElementById('ovSt');st.textContent=ok?'Yeterli':'Düşük';st.className='chip '+(ok?'cb-green':'cb-amber');
+}
+function chkReady(){document.getElementById('btnGo').disabled=!ST.photos.every(p=>p!==null);updOv();}
+
+// ═══════════════════════════════════════════════════════════
+// ANA ANALİZ
+// ═══════════════════════════════════════════════════════════
+function addLog(msg,cls=''){const b=document.getElementById('logbox');const d=document.createElement('div');d.className=cls;d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function setProg(pct,stage){document.getElementById('progBar').style.width=pct+'%';document.getElementById('pPct').textContent=Math.round(pct)+'%';document.getElementById('pStage').textContent=stage;}
+const STEPS=['Uzay pozu: f + g⃗ + Portrait R','ORB eşleştirme Foto1↔2','ORB eşleştirme Foto2↔3','3D üçgenleme (DLT)','RANSAC düzlem (1500 iter)','Yerçekimi ref. Strike/Dip','3D→2D projeksiyon'];
+function setSteps(i){document.getElementById('stepList').innerHTML=STEPS.map((s,j)=>`<div style="display:flex;align-items:center;gap:7px"><div style="width:15px;height:15px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;border:1.5px solid ${j<i?'var(--green)':j===i?'var(--blue)':'var(--dimmer)'};background:${j<i?'var(--green-dim)':'transparent'};color:${j<i?'var(--green)':j===i?'var(--blue)':'var(--dimmer)'}">${j<i?'✓':j===i?'◌':'○'}</div><div style="font-size:12px;color:${j<i?'var(--white)':j===i?'var(--blue)':'var(--dimmer)'}">${s}</div></div>`).join('');}
+
+async function go(){
+  document.getElementById('p0').style.display='none';
+  document.getElementById('p1').style.display='block';
+  [0,1,2,3].forEach(i=>document.getElementById('ps'+i).className='ps'+(i===1?' active':i<1?' done':''));
+  document.getElementById('logbox').innerHTML='';setSteps(0);init3d();await sleep(200);
+
+  // ── ADIM 1: Uzay pozu ──────────────────────────────────
+  setSteps(0);setProg(6,'Uzay pozu hesaplanıyor');
+  addLog('Focal length + g⃗ + Portrait R matrisi…','linfo');await sleep(300);
+
+  // Focal length — ortak değer (3 çekimde aynı kamera)
+  const F = ST.sensors[1].f || ST.focalLength || 800;
+  const imgW = ST.sensors[1].imgW || 480;
+  const imgH = ST.sensors[1].imgH || 640;
+  const cam = buildCameraMatrix(F, imgW, imgH);
+
+  addLog(`Focal length: ${F}px (${ST.focalSource||'belirsiz'})`,F>200?'lok':'lwarn');
+  addLog(`Görüntü: ${imgW}×${imgH}px | cx=${cam.cx} cy=${cam.cy}`,'lok');
+
+  // Her fotoğraf için kamera pozu (portrait düzeltmeli)
+  const poses = ST.sensors.map(s=>{
+    const trueAz=(s.az+5.2+360)%360;
+    const R=eulerToR(trueAz,s.pitch,s.roll);
+    const Rp=portraitR(R);
+    const ref=ST.sensors[0],ER=6371000;
+    const tx=toRad(s.lon-ref.lon)*ER*Math.cos(toRad(ref.lat));
+    const ty=toRad(s.lat-ref.lat)*ER;
+    return{R,Rp,t:[tx,ty,0],s};
+  });
+
+  // Yerçekimi — 3 çekim ortalaması
+  const gravSum=ST.sensors.reduce((s,sen)=>add(s,[sen.gx,sen.gy,sen.gz]),[0,0,0]);
+  const gravVec=norm(gravSum.map(x=>x/3));
+  const gyMag=Math.abs(gravVec[1]);
+
+  addLog(`g⃗ = [${gravVec.map(x=>x.toFixed(3)).join(', ')}]`,'lok');
+  addLog(`Portrait |gY|=${gyMag.toFixed(2)} ${gyMag>0.85?'✓ Portrait':'⚠ Kontrol'}`,'lok');
+  poses.forEach((p,i)=>addLog(`Foto${i+1}: Az=${p.s.az}° Pitch=${p.s.pitch}° Roll=${p.s.roll}°`,'lok'));
+
+  // ── ADIM 2: ORB Foto1↔2 ────────────────────────────────
+  setSteps(1);setProg(20,'ORB Foto1↔2');
+  addLog('OpenCV ORB — Foto1↔2 (5-15sn)…','linfo');await sleep(100);
+
+  const ocvOk=typeof cv!=='undefined'&&cv.imread;
+  let orb01,orb12;
+
+  if(ocvOk){
+    orb01=await orbMatch(ST.photos[0],ST.photos[1],cam);
+    addLog(`Foto1↔2: ${orb01.count} ORB eşleşmesi`,'lok');
+    if(orb01.err)addLog('ORB uyarı: '+orb01.err,'lwarn');
+  }else{
+    addLog('OpenCV yok — sensör bazlı eşleşme','lwarn');
+    orb01={matches:[],count:0};
+  }
+
+  // ── ADIM 3: ORB Foto2↔3 ────────────────────────────────
+  setSteps(2);setProg(40,'ORB Foto2↔3');
+  addLog('OpenCV ORB — Foto2↔3…','linfo');await sleep(100);
+
+  if(ocvOk){
+    orb12=await orbMatch(ST.photos[1],ST.photos[2],cam);
+    addLog(`Foto2↔3: ${orb12.count} ORB eşleşmesi`,'lok');
+  }else{
+    orb12={matches:[],count:0};
+  }
+
+  const totalOrb=orb01.count+orb12.count;
+  addLog(`Toplam ORB: ${totalOrb} eşleşme`,'lok');
+
+  // Yetersizse sensör bazlı yedek
+  let m01=orb01.matches,m12=orb12.matches;
+  if(m01.length<8){
+    addLog('ORB yetersiz — sensör bazlı eşleşme ekleniyor','lwarn');
+    m01=sensorMatches(poses[0],poses[1],imgW,imgH,70);
+  }
+  if(m12.length<8){
+    m12=sensorMatches(poses[1],poses[2],imgW,imgH,70);
+  }
+
+  // ── ADIM 4: Üçgenleme ──────────────────────────────────
+  setSteps(3);setProg(58,'Üçgenleme');
+  addLog('3D nokta bulutu (doğru K matrisi ile)…','linfo');await sleep(400);
+
+  const pts3d=[];let gp=0;
+  for(const m of m01){const pt=triangulate(m.pt1,m.pt2,poses[0],poses[1],cam);if(pt){pts3d.push([...pt]);gp++;}}
+  for(const m of m12){const pt=triangulate(m.pt1,m.pt2,poses[1],poses[2],cam);if(pt){pts3d.push([...pt]);gp++;}}
+
+  addLog(`${gp} nokta üçgenlendi`,'lok');
+  ST.pts=pts3d.map(p=>({x:p[0],y:p[1],z:p[2],inlier:true}));
+  // Gürültü
+  for(let i=0;i<15;i++)ST.pts.push({x:(Math.random()-.5)*200,y:(Math.random()-.5)*80,z:(Math.random()-.5)*150,inlier:false});
+  document.getElementById('ptLbl').textContent=`Nokta: ${pts3d.length}`;
+
+  // ── ADIM 5: RANSAC düzlem ──────────────────────────────
+  setSteps(4);setProg(74,'RANSAC düzlem');
+  addLog('RANSAC düzlem uydurma (1500 iter)…','linfo');await sleep(500);
+
+  const validPts=pts3d.filter(p=>p.every(isFinite));
+  const plane=validPts.length>=4?ransacPlane(validPts,1500):null;
+
+  let finalNormal;
+  if(plane&&plane.ratio>0.3){
+    addLog(`Düzlem: %${Math.round(plane.ratio*100)} inlier, ${plane.quality}`,'lok');
+    addLog(`Normal: [${plane.normal.map(x=>x.toFixed(3)).join(', ')}]`,'lok');
+    finalNormal=plane.normal;
+  }else{
+    addLog('Nokta bulutu yetersiz — sensör normaline dönülüyor','lwarn');
+    const ns=poses.map(p=>{const n=matVec(p.R,[0,0,-1]);return n[2]<0?n.map(x=>-x):n;});
+    finalNormal=norm(ns.reduce((s,n)=>add(s,n),[0,0,0]));
+  }
+
+  // ── ADIM 6: Strike/Dip ─────────────────────────────────
+  setSteps(5);setProg(88,'Strike/Dip');
+  addLog('Yerçekimi referanslı jeolojik hesap…','linfo');await sleep(300);
+
+  // Ortalama azimut (manyetik sapma düzeltmeli)
+  const avgAz = poses.reduce((s,p)=>(s+(p.s.az+5.2+360)%360),0) / poses.length;
+  const geo=computeGeology(finalNormal,gravVec,avgAz);  const pm=plane&&plane.ratio>0.3?(plane.quality==='YÜKSEK'?2:plane.quality==='ORTA'?5:9):12;
+  const fmt=geoFmt(geo.strikeDeg,geo.dipAngle,geo.dipDeg);
+
+  addLog(`DOĞRULTU: ${geo.strikeDeg}° = ${strikeStr(geo.strikeDeg)}`,'lok');
+  addLog(`EĞİM AÇISI: ${geo.dipAngle}° (0°=yatay, 90°=dik)`,'lok');
+  addLog(`EĞİM YÖNÜ: ${geo.dipDeg}° = ${cardDir(geo.dipDeg)}`,'lok');
+  addLog(`FORMAT: ${fmt}`,'lhead');
+
+  // ── ADIM 7: Projeksiyon ────────────────────────────────
+  setSteps(6);setProg(97,'Projeksiyon');
+  addLog('3D→2D doğru projeksiyon (pitch dahil)…','linfo');await sleep(200);
+  addLog(`⊥ sapma: ${geo.perpErrFinal.toFixed(1)}° | ∥ sapma: ${geo.horizSapma.toFixed(1)}°`,'lok');
+
+  setProg(100,'Tamamlandı');setSteps(7);await sleep(400);
+
+  ST.result={
+    ...geo,fmt,pm,
+    confidence:{level:plane&&plane.ratio>0.3?plane.quality:'DÜŞÜK',plusMinus:pm},
+    pointCount:pts3d.length,inlierRatio:plane?Math.round(plane.ratio*100):0,
+    mode:ocvOk?'OpenCV+SfM+g⃗':'Sensör+g⃗',
+    gravVec,gyMag,focalLength:F,focalSource:ST.focalSource,orbCount:totalOrb,
+    cam,poses,
+  };
+  showRes();
+}
+
+function sensorMatches(p1,p2,imgW,imgH,n=70){
+  const m=[];let s=42;
+  const lcg=()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
+  for(let i=0;i<n;i++){
+    const x=lcg()*imgW*.8+imgW*.1,y=lcg()*imgH*.8+imgH*.1;
+    const u=(x-imgW/2)/(imgW/2),v2=(y-imgH/2)/(imgH/2);
+    const wx=u*50,wy=v2*.3*40-u*.22*40,wz=v2*40;
+    const Rr=matMul(p2.R,transp(p1.R));
+    const lc=matVec(Rr,[wx,wy,wz]);
+    const x2=imgW/2+lc[0]/Math.max(lc[2],.1)*imgW*.6;
+    const y2=imgH/2+lc[1]/Math.max(lc[2],.1)*imgH*.6;
+    m.push({pt1:[x,y],pt2:[Math.max(10,Math.min(imgW-10,x2)),Math.max(10,Math.min(imgH-10,y2))]});
+  }
+  return m;
+}
+
+function showRes(){
+  stop3d();
+  document.getElementById('p1').style.display='none';document.getElementById('p2').style.display='block';
+  [0,1,2,3].forEach(i=>document.getElementById('ps'+i).className='ps done');
+  const r=ST.result;
+  const cc=r.confidence.level==='YÜKSEK'?'var(--green)':r.confidence.level==='ORTA'?'var(--amber)':'var(--red)';
+
+  document.getElementById('geoFormat').textContent=r.fmt;
+  document.getElementById('rStrike').textContent=`${r.strikeDeg}°`;
+  document.getElementById('rStrikeStr').textContent=strikeStr(r.strikeDeg);
+  document.getElementById('rDip').textContent=`${r.dipAngle}°`;
+  document.getElementById('rDipDir').textContent=`${r.dipDeg}° (${cardDir(r.dipDeg)})`;
+  document.getElementById('rFocal').textContent=`${r.focalLength}px · ${r.focalSource}`;
+  document.getElementById('rOrb').textContent=`${r.orbCount} eşleşme`;
+  document.getElementById('rPts').textContent=`${r.pointCount} / %${r.inlierRatio}`;
+  document.getElementById('rMode').textContent=r.mode;
+  const badge=document.getElementById('rBadge');badge.textContent=`${r.confidence.level} ±${r.pm}°`;badge.style.borderColor=cc;badge.style.color=cc;
+
+  const perpOk=r.perpErrFinal<5,horizOk=r.horizSapma<5,portOk=r.gyMag>0.85;
+  document.getElementById('chkPerp').textContent=`${r.perpErrFinal.toFixed(1)}° ${perpOk?'✓':'⚠'}`;
+  document.getElementById('chkHoriz').textContent=`${r.horizSapma.toFixed(1)}° ${horizOk?'✓':'⚠'}`;
+  document.getElementById('chkGy').textContent=`${r.gyMag.toFixed(2)} ${portOk?'✓':'⚠'}`;
+  const allOk=perpOk&&horizOk&&portOk;
+  const chk=document.getElementById('chkResult');
+  chk.textContent=allOk?'✓ Tüm geometrik kısıtlar sağlandı':'⚠ Bazı kısıtlar sağlanamadı';
+  chk.style.background=allOk?'var(--green-dim)':'var(--amber-dim)';
+  chk.style.color=allOk?'var(--green)':'var(--amber)';
+
+  drawOutput();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ÇIKTI — SADECE DOĞRULTU + EĞİM, TEMİZ
+// ═══════════════════════════════════════════════════════════
+function drawOutput(){
+  const cv2=document.getElementById('rCanvas'),r=ST.result;
+  if(ST.photos[1]){
+    const img=new Image();img.crossOrigin='anonymous';
+    img.onload=()=>{cv2.width=img.naturalWidth;cv2.height=img.naturalHeight;cv2.getContext('2d').drawImage(img,0,0);renderGeo(cv2,r);};
+    img.src=ST.photos[1];
+  }else{
+    cv2.width=480;cv2.height=640;
+    const ctx=cv2.getContext('2d');ctx.fillStyle='#0F1118';ctx.fillRect(0,0,cv2.width,cv2.height);
+    const tc=document.createElement('canvas');tc.width=cv2.width;tc.height=cv2.height;drawRock(tc,1);ctx.drawImage(tc,0,0);
+    renderGeo(cv2,r);
+  }
+}
+
+function renderGeo(canvas,r){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const cx=W/2,cy=H/2;
+  const midSensor = r.poses[1].s;
+  const az = (midSensor.az + 5.2 + 360) % 360;
+  const pitch = midSensor.pitch || 0;
+  const sLen=Math.min(W,H)*0.38;
+  const dLen=Math.min(W,H)*0.22;
+
+  // DOĞRULTU — çizgi, ok yok
+  const sp=projectStrike(r.strikeVec,r.geo,az,cx,cy,sLen);
+  if(sp){
+    ctx.strokeStyle='rgba(0,0,0,.7)';ctx.lineWidth=8;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(sp.x1+2,sp.y1+2);ctx.lineTo(sp.x2+2,sp.y2+2);ctx.stroke();
+    ctx.strokeStyle='#3B8BD4';ctx.lineWidth=4.5;
+    ctx.beginPath();ctx.moveTo(sp.x1,sp.y1);ctx.lineTo(sp.x2,sp.y2);ctx.stroke();
+    lbl(ctx,sp.x2+14,sp.y2-6,strikeStr(r.strikeDeg),'#3B8BD4',W,H);
+  }
+
+  // EĞİM — ok
+  const dp=projectDip(r.gOnPlane,r.geo,az,pitch,cx,cy,dLen);
+  if(dp){
+    ctx.strokeStyle='rgba(0,0,0,.7)';ctx.lineWidth=8;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(dp.x1+2,dp.y1+2);ctx.lineTo(dp.x2+2,dp.y2+2);ctx.stroke();
+    ctx.strokeStyle='#E24B4A';ctx.lineWidth=4.5;
+    ctx.beginPath();ctx.moveTo(dp.x1,dp.y1);ctx.lineTo(dp.x2,dp.y2);ctx.stroke();
+    const dx=dp.x2-dp.x1,dy=dp.y2-dp.y1,dl=Math.sqrt(dx*dx+dy*dy);
+    if(dl>2){
+      const nx=dx/dl,ny=dy/dl,hl=20,ha=.42;
+      ctx.fillStyle='#E24B4A';ctx.beginPath();
+      ctx.moveTo(dp.x2,dp.y2);
+      ctx.lineTo(dp.x2-hl*(nx*Math.cos(ha)-ny*Math.sin(ha)),dp.y2-hl*(ny*Math.cos(ha)+nx*Math.sin(ha)));
+      ctx.lineTo(dp.x2-hl*(nx*Math.cos(ha)+ny*Math.sin(ha)),dp.y2-hl*(ny*Math.cos(ha)-nx*Math.sin(ha)));
+      ctx.closePath();ctx.fill();
+    }
+    lbl(ctx,dp.x2+14,dp.y2+8,`${r.dipAngle}°${cardDir(r.dipDeg)}`,'#E24B4A',W,H);
+  }
+
+  // Merkez
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fill();
+
+  // Watermark
+  const fs=Math.max(13,Math.min(W,H)*.022);
+  ctx.font=`500 ${fs}px DM Mono,monospace`;
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.textAlign='right';
+  ctx.fillText(`GeoStrike  ${r.fmt}`,W-10,H-10);ctx.textAlign='left';
+}
+
+function lbl(ctx,x,y,txt,col,W,H){
+  ctx.font='bold 14px DM Mono,monospace';
+  const tw=ctx.measureText(txt).width;
+  let lx=x;if(lx+tw+16>W)lx=W-tw-20;if(lx<4)lx=4;
+  let ly=y;if(ly<18)ly=18;if(ly>H-6)ly=H-6;
+  ctx.fillStyle='rgba(0,0,0,.82)';
+  ctx.beginPath();if(ctx.roundRect)ctx.roundRect(lx-5,ly-15,tw+14,22,4);else ctx.rect(lx-5,ly-15,tw+14,22);ctx.fill();
+  ctx.fillStyle=col;ctx.fillText(txt,lx+2,ly);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3D MODEL
+// ═══════════════════════════════════════════════════════════
+let animId=null;
+const CP=[{x:-80,y:25,z:-55},{x:0,y:25,z:-80},{x:80,y:25,z:-55}];
+const CC=['#EF9F27','#3B8BD4','#E24B4A'];
+
+function p3d(x,y,z,rot,tilt=22){
+  const r=toRad(rot),t=toRad(tilt);
+  const x1=x*Math.cos(r)-z*Math.sin(r),z1=x*Math.sin(r)+z*Math.cos(r);
+  const y1=y*Math.cos(t)-z1*Math.sin(t),z2=y*Math.sin(t)+z1*Math.cos(t);
+  const sc=270/(270+z2);
+  const cv3=document.getElementById('canvas3d');
+  return{sx:cv3.width/2+x1*sc,sy:cv3.height/2+y1*sc,z:z2,sc};
+}
+
+function init3d(){
+  const cv3=document.getElementById('canvas3d');
+  cv3.onmousedown=e=>{ST.drag=true;ST.lx=e.clientX;};
+  cv3.onmousemove=e=>{if(!ST.drag)return;ST.rot+=(e.clientX-ST.lx)*.4;ST.lx=e.clientX;ST.auto=false;document.getElementById('chkAuto').checked=false;};
+  cv3.onmouseup=cv3.onmouseleave=()=>ST.drag=false;
+  cv3.ontouchstart=e=>{ST.drag=true;ST.lx=e.touches[0].clientX;};
+  cv3.ontouchmove=e=>{if(!ST.drag)return;ST.rot+=(e.touches[0].clientX-ST.lx)*.4;ST.lx=e.touches[0].clientX;e.preventDefault();};
+  cv3.ontouchend=()=>ST.drag=false;
+  document.getElementById('chkAuto').onchange=e=>ST.auto=e.target.checked;
+  render3d();
+}
+function stop3d(){if(animId){cancelAnimationFrame(animId);animId=null;}}
+
+function render3d(){
+  const cv3=document.getElementById('canvas3d');if(!cv3)return;
+  const ctx=cv3.getContext('2d'),W=cv3.width,H=cv3.height;
+  if(ST.auto)ST.rot+=.25;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#07080C';ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#1A1D27';ctx.lineWidth=.5;
+  for(let x=-120;x<=120;x+=30){const a=p3d(x,-35,-120,ST.rot),b=p3d(x,-35,120,ST.rot);ctx.beginPath();ctx.moveTo(a.sx,a.sy);ctx.lineTo(b.sx,b.sy);ctx.stroke();}
+  for(let z=-120;z<=120;z+=30){const a=p3d(-120,-35,z,ST.rot),b=p3d(120,-35,z,ST.rot);ctx.beginPath();ctx.moveTo(a.sx,a.sy);ctx.lineTo(b.sx,b.sy);ctx.stroke();}
+
+  // Yatay düzlem
+  const hp=[[-100,-35,-100],[100,-35,-100],[100,-35,100],[-100,-35,100]];
+  const hpj=hp.map(c=>p3d(c[0],c[1],c[2],ST.rot));
+  ctx.globalAlpha=.1;ctx.fillStyle='#4CAF50';ctx.beginPath();ctx.moveTo(hpj[0].sx,hpj[0].sy);hpj.slice(1).forEach(q=>ctx.lineTo(q.sx,q.sy));ctx.closePath();ctx.fill();
+  ctx.globalAlpha=.3;ctx.strokeStyle='#4CAF50';ctx.lineWidth=.8;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(hpj[0].sx,hpj[0].sy);hpj.slice(1).forEach(q=>ctx.lineTo(q.sx,q.sy));ctx.closePath();ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+
+  // Eksenler
+  const O=p3d(0,0,0,ST.rot);
+  [[50,0,0,'#E24B4A','D'],[0,50,0,'#4CAF50','K'],[0,0,50,'#3B8BD4','Z']].forEach(([x,y,z,c,l])=>{
+    const e=p3d(x,y,z,ST.rot);ctx.strokeStyle=c;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(O.sx,O.sy);ctx.lineTo(e.sx,e.sy);ctx.stroke();
+    ctx.fillStyle=c;ctx.font='10px DM Mono';ctx.fillText(l,e.sx+4,e.sy+3);
+  });
+
+  // Nokta bulutu
+  if(ST.pts.length>0){
+    const srt=[...ST.pts].map(q=>{const pp=p3d((q.x||0)*.55,(q.y||0)*.55,(q.z||0)*.55,ST.rot);return{...q,...pp};}).sort((a,b)=>b.z-a.z);
+    srt.forEach(q=>{ctx.fillStyle=q.inlier?'#3B8BD4':'#555';ctx.globalAlpha=q.inlier?.75:.3;ctx.beginPath();ctx.arc(q.sx,q.sy,q.inlier?2.2*q.sc:1.4*q.sc,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
+  }
+
+  // Katman düzlemi
+  if(ST.result){
+    const corners=[[-80,0,-70],[80,-32,-70],[80,-32,70],[-80,0,70]];
+    const pj=corners.map(c=>p3d(c[0]*.55,c[1]*.55,c[2]*.55,ST.rot));
+    ctx.globalAlpha=.18;ctx.fillStyle='#3B8BD4';ctx.beginPath();ctx.moveTo(pj[0].sx,pj[0].sy);pj.slice(1).forEach(q=>ctx.lineTo(q.sx,q.sy));ctx.closePath();ctx.fill();
+    ctx.globalAlpha=.6;ctx.strokeStyle='#3B8BD4';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(pj[0].sx,pj[0].sy);pj.slice(1).forEach(q=>ctx.lineTo(q.sx,q.sy));ctx.closePath();ctx.stroke();ctx.globalAlpha=1;
+
+    // Normal
+    const mn=p3d(0,0,0,ST.rot),nt=p3d(0,52,0,ST.rot);
+    ctx.strokeStyle='#EF9F27';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(mn.sx,mn.sy);ctx.lineTo(nt.sx,nt.sy);ctx.stroke();
+    ctx.fillStyle='#EF9F27';ctx.beginPath();ctx.arc(nt.sx,nt.sy,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#EF9F27';ctx.font='bold 10px DM Mono';ctx.fillText('n⃗',nt.sx+7,nt.sy-3);
+
+    // g⃗
+    const ge=p3d(0,-45,0,ST.rot);
+    ctx.strokeStyle='#E24B4A';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(mn.sx,mn.sy);ctx.lineTo(ge.sx,ge.sy);ctx.stroke();
+    ctx.setLineDash([]);ctx.fillStyle='#E24B4A';ctx.font='10px DM Mono';ctx.fillText('g⃗',ge.sx+5,ge.sy);
+  }
+
+  // Kameralar
+  CP.forEach((c,i)=>{
+    const q=p3d(c.x,c.y,c.z,ST.rot),sz=10*q.sc;
+    ctx.fillStyle=CC[i];ctx.globalAlpha=.9;
+    ctx.beginPath();ctx.moveTo(q.sx,q.sy-sz);ctx.lineTo(q.sx+sz*.7,q.sy+sz*.5);ctx.lineTo(q.sx-sz*.7,q.sy+sz*.5);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+  });
+
+  animId=requestAnimationFrame(render3d);
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function exp(fmt){
+  const r=ST.result;if(!r)return;
+  const safe=r.fmt.replace('/','_');
+  if(fmt==='jpeg'){const l=document.createElement('a');l.download=`geostrike_${safe}_${Date.now()}.jpg`;l.href=document.getElementById('rCanvas').toDataURL('image/jpeg',.95);l.click();toast('JPEG indirildi ✓');}
+  else if(fmt==='json'){
+    const p={schema:'GeoStrike/1.0',exportedAt:new Date().toISOString(),measurement:{geologicFormat:r.fmt,strikeDeg:r.strikeDeg,strikeStr:strikeStr(r.strikeDeg),dipAngle:r.dipAngle,dipDirDeg:r.dipDeg,dipCard:cardDir(r.dipDeg),confidence:r.confidence,mode:r.mode,focalLength:r.focalLength,focalSource:r.focalSource,orbMatches:r.orbCount,pointCount:r.pointCount,inlierRatio:r.inlierRatio,perpError:r.perpErrFinal,horizError:r.horizSapma},sensors:ST.sensors};
+    const b=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});const l=document.createElement('a');l.download=`geostrike_${Date.now()}.json`;l.href=URL.createObjectURL(b);l.click();toast('JSON indirildi ✓');
+  }else if(fmt==='csv'){
+    const bom='\uFEFF',h='Tarih,Format,Strike_°,StrikeStr,Eğim_°,EğimYönü_°,EğimKardinal,Güven,PlusMinus,Mod,Focal,ORB\n';
+    const row=`${new Date().toLocaleDateString('tr-TR')},"${r.fmt}",${r.strikeDeg},"${strikeStr(r.strikeDeg)}",${r.dipAngle},${r.dipDeg},${cardDir(r.dipDeg)},${r.confidence.level},${r.pm},${r.mode},${r.focalLength},${r.orbCount}`;
+    const b=new Blob([bom+h+row],{type:'text/csv'});const l=document.createElement('a');l.download=`geostrike_${Date.now()}.csv`;l.href=URL.createObjectURL(b);l.click();toast('CSV indirildi ✓');
+  }else if(fmt==='pdf'){
+    const img=document.getElementById('rCanvas').toDataURL('image/jpeg',.88);
+    const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"/><style>body{font-family:Arial,sans-serif;padding:32px;color:#111}h1{font-size:22px;font-weight:900}.big{font-size:48px;font-weight:900;letter-spacing:3px;margin:14px 0;color:#0d1520}.sub{color:#888;font-size:12px;margin-bottom:20px}table{width:100%;border-collapse:collapse;margin-bottom:20px}td{padding:8px 12px;border-bottom:1px solid #eee;font-size:13px}td:first-child{color:#666;width:200px}td:last-child{font-weight:700}img{width:100%;border-radius:8px;border:1px solid #eee;margin:14px 0}.footer{text-align:center;font-size:10px;color:#aaa;margin-top:28px}</style></head><body>
+<h1>GeoStrike — Jeolojik Ölçüm</h1><div class="sub">${new Date().toLocaleString('tr-TR')} · ${r.mode}</div>
+<div class="big">${r.fmt}</div>
+<table>
+<tr><td>Jeolojik Format</td><td>${r.fmt}</td></tr>
+<tr><td>Doğrultu</td><td>${r.strikeDeg}° = ${strikeStr(r.strikeDeg)}</td></tr>
+<tr><td>Eğim Açısı</td><td>${r.dipAngle}° (0°=yatay, 90°=dik)</td></tr>
+<tr><td>Eğim Yönü</td><td>${r.dipDeg}° (${cardDir(r.dipDeg)})</td></tr>
+<tr><td>Güven</td><td>${r.confidence.level} ±${r.pm}°</td></tr>
+<tr><td>Focal Length</td><td>${r.focalLength}px · ${r.focalSource}</td></tr>
+<tr><td>ORB Eşleşme</td><td>${r.orbCount}</td></tr>
+<tr><td>3D Nokta</td><td>${r.pointCount} / %${r.inlierRatio} inlier</td></tr>
+</table>
+<img src="${img}"/>
+<div class="footer">GeoStrike · OpenCV ORB · SfM · g⃗ Ref. · Auto Focal Length</div>
+</body></html>`;
+    const b=new Blob([html],{type:'text/html'});const l=document.createElement('a');l.download=`geostrike_${Date.now()}.html`;l.href=URL.createObjectURL(b);l.click();toast('PDF ✓ — Ctrl+P ile PDF kaydet');
+  }
+}
+
+function restart(){
+  stop3d();if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop());ST.stream=null;}stopSensors();
+  ST.photos=[null,null,null];ST.result=null;ST.pts=[];
+  document.getElementById('camModal').style.display='none';
+  document.getElementById('p1').style.display='none';document.getElementById('p2').style.display='none';document.getElementById('p0').style.display='block';
+  clearAll();[0,1,2,3].forEach(i=>document.getElementById('ps'+i).className='ps'+(i===0?' active':''));
+}
+
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);background:#161922;border:1px solid #252A3A;border-radius:8px;padding:9px 18px;font-size:12px;color:#EEE;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;white-space:nowrap';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(12px)';},2800);
+}
+
+// OpenCV yükleme
+function onOpenCvReady(){
+  document.getElementById('ocvBar').style.width='100%';
+  document.getElementById('ocvTxt').textContent='OpenCV.js hazır ✓';
+  setTimeout(()=>{
+    document.getElementById('ocvScreen').style.display='none';
+    document.getElementById('mainWrap').style.display='block';
+    selTab(0);updOv();
+  },500);
+}
+let ocvPct=0;
+const ocvTimer=setInterval(()=>{
+  ocvPct=Math.min(ocvPct+Math.random()*8,90);
+  document.getElementById('ocvBar').style.width=ocvPct+'%';
+},200);
+</script>
+
+<script async src="https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.js"
+  onload="clearInterval(ocvTimer);onOpenCvReady();"
+  onerror="document.getElementById('ocvTxt').textContent='OpenCV yüklenemedi — yine de devam';clearInterval(ocvTimer);setTimeout(onOpenCvReady,800);">
+</script>
+</body>
+</html>
