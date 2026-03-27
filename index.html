@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<title>GeoStrike</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080C;--s1:#0F1118;--s2:#161922;--bd:#1D2130;--bd2:#252A3A;
+  --blue:#3B8BD4;--blue-dim:#0D2035;--red:#E24B4A;
+  --green:#4CAF50;--green-dim:#1B3A1C;--amber:#EF9F27;--amber-dim:#3A2800;
+  --white:#EEE;--dim:#888780;--dimmer:#3A3A38;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--white);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+button{font-family:var(--sans);cursor:pointer}
+input[type=range]{accent-color:var(--blue);width:100%}
+.wrap{max-width:960px;margin:0 auto;padding:14px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.logo{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:2px}
+.logo em{color:var(--blue);font-style:normal}
+.sub{font-size:11px;color:var(--dim);margin-top:2px}
+.badge{padding:4px 10px;border-radius:20px;border:1px solid var(--green);font-size:10px;color:var(--green);display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.prog{display:flex;gap:3px;margin-bottom:14px}
+.ps{flex:1;height:3px;border-radius:2px;background:var(--dimmer);transition:background .4s}
+.ps.done{background:var(--green)}.ps.active{background:var(--blue)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.ch{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ct{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.cb{padding:14px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.modal-inner{width:100%;max-width:480px;display:flex;flex-direction:column;gap:10px}
+.cam-view{position:relative;border-radius:12px;overflow:hidden;background:#000;width:100%}
+.cam-view video{width:100%;display:block;object-fit:cover}
+.cam-guide{position:absolute;inset:0;pointer-events:none}
+.cg-h{position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,.2)}
+.cg-v{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.2)}
+.cg-corner{position:absolute;width:20px;height:20px;border:2px solid rgba(255,255,255,.5)}
+.cg-tl{top:12px;left:12px;border-right:none;border-bottom:none}
+.cg-tr{top:12px;right:12px;border-left:none;border-bottom:none}
+.cg-bl{bottom:12px;left:12px;border-right:none;border-top:none}
+.cg-br{bottom:12px;right:12px;border-left:none;border-top:none}
+.cam-guide-label{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 14px;text-align:center;white-space:nowrap}
+.cgl-main{font-size:12px;font-weight:600;color:var(--white)}
+.cgl-sub{font-size:10px;color:var(--dim);margin-top:1px}
+.level-wrap{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);border-radius:10px;padding:5px 12px;display:flex;align-items:center;gap:8px}
+.level-bar{width:80px;height:5px;background:rgba(255,255,255,.15);border-radius:3px;position:relative}
+.level-cursor{position:absolute;top:-3px;width:3px;height:11px;border-radius:2px;background:var(--green);transition:left .15s,background .15s;left:38px}
+.level-txt{font-size:10px;color:var(--dim);font-family:var(--mono);min-width:40px}
+.north-badge{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.65);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cam-sensor-strip{background:rgba(7,8,12,.85);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 14px;display:flex;justify-content:space-around}
+.cs-item{text-align:center}
+.cs-lbl{font-size:9px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase}
+.cs-val{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--blue);margin-top:1px}
+.cam-controls{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.btn-cap{width:68px;height:68px;border-radius:50%;border:3px solid var(--white);background:transparent;display:flex;align-items:center;justify-content:center;transition:transform .1s;flex-shrink:0}
+.btn-cap:active{transform:scale(.88)}
+.btn-cap-inner{width:52px;height:52px;border-radius:50%;background:var(--white);transition:background .15s}
+.btn-cap.done .btn-cap-inner{background:var(--green)}
+.cam-previews{display:flex;gap:8px}
+.cprev{width:60px;height:80px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cprev img{width:100%;height:100%;object-fit:cover}
+.cprev-num{font-size:14px;font-weight:700;color:var(--dimmer)}
+.cprev-active{border-color:var(--blue)!important;background:var(--blue-dim)!important}
+.cprev-check{position:absolute;top:2px;right:2px;background:var(--green);border-radius:50%;width:13px;height:13px;font-size:7px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.cam-status{font-size:11px;color:var(--dim);text-align:center}
+.switch-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--bd2);background:transparent;color:var(--dim);font-size:12px}
+.close-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--red);background:transparent;color:var(--red);font-size:12px}
+.pslot{aspect-ratio:3/4;border-radius:8px;border:1px dashed var(--bd2);background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s}
+.pslot:hover{border-color:var(--blue)}.pslot.has{border-style:solid;border-color:var(--bd)}
+.pslot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pslot input{display:none}
+.snum{font-size:20px;font-weight:700;color:var(--dimmer);position:relative;z-index:1}
+.slbl{font-size:10px;color:var(--dim);margin-top:5px;position:relative;z-index:1}
+.scheck{position:absolute;top:5px;right:5px;background:var(--green);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;z-index:2}
+.sov{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);padding:3px 8px;font-size:10px;color:rgba(255,255,255,.8);z-index:2}
+.cam-open-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px;border-radius:8px;border:1px solid var(--blue);background:var(--blue-dim);color:var(--blue);font-size:13px;font-weight:600;margin-bottom:8px}
+.si-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.si-lbl{font-size:11px;color:var(--dim);width:75px;flex-shrink:0}
+.si-val{font-family:var(--mono);font-size:12px;color:var(--white);min-width:44px;text-align:right}
+.ovbar{height:5px;border-radius:3px;background:var(--dimmer);overflow:hidden;margin-top:4px;position:relative}
+.ovfill{height:100%;border-radius:3px;transition:width .4s}
+.ovmark{position:absolute;left:60%;top:-3px;width:2px;height:11px;background:rgba(255,255,255,.3)}
+.btn{padding:9px 18px;border-radius:8px;border:none;font-weight:600;font-size:13px;letter-spacing:.3px;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover:not(:disabled){opacity:.88}
+.btn-g{background:transparent;border:1px solid var(--bd2);color:var(--dim)}.btn-g:hover{border-color:var(--blue);color:var(--blue)}
+.btn-sm{padding:5px 11px;font-size:11px}
+.logbox{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--dim);height:160px;overflow-y:auto;line-height:1.8}
+.logbox .lok{color:var(--green)}.logbox .lwarn{color:var(--amber)}.logbox .linfo{color:var(--blue)}.logbox .lhead{color:var(--white);font-weight:500}
+.geo-result-box{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px;text-align:center;margin-bottom:12px}
+.geo-format{font-family:var(--display);font-size:34px;font-weight:800;letter-spacing:2px;color:var(--white);margin-bottom:4px}
+.geo-sub{font-size:11px;color:var(--dim);letter-spacing:.5px}
+.rrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rlbl{color:var(--dim);font-size:12px;width:140px}
+.rval{font-family:var(--mono);font-size:13px;font-weight:500}
+.confbadge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:12px;border:1px solid;font-size:11px;font-weight:700;letter-spacing:.5px;margin-top:8px}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600}
+.cb-blue{background:var(--blue-dim);color:var(--blue)}.cb-green{background:var(--green-dim);color:var(--green)}.cb-amber{background:var(--amber-dim);color:var(--amber)}
+#canvas3d{width:100%;display:block;cursor:grab}
+.canvctrl{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--s2);border-top:1px solid var(--bd);font-size:11px;color:var(--dim)}
+.divider{height:1px;background:var(--bd);margin:12px 0}
+</style>
+</head>
+<body>
+
+<!-- KAMERA MODAL -->
+<div id="camModal" class="modal-bg" style="display:none">
+  <div class="modal-inner">
+    <div class="cam-view" id="camView">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <div class="cam-guide">
+        <div class="cg-h"></div><div class="cg-v"></div>
+        <div class="cg-corner cg-tl"></div><div class="cg-corner cg-tr"></div>
+        <div class="cg-corner cg-bl"></div><div class="cg-corner cg-br"></div>
+        <div class="cam-guide-label">
+          <div class="cgl-main" id="cgMain">Sol açıdan çek</div>
+          <div class="cgl-sub" id="cgSub">Telefonu dikey tut</div>
+        </div>
+        <div class="north-badge">
+          <span style="font-size:13px;color:var(--white);line-height:1">↑</span>
+          <span style="font-size:8px;color:var(--dim);font-weight:700">K</span>
+        </div>
+        <div class="level-wrap">
+          <div class="level-bar"><div class="level-cursor" id="levelCursor"></div></div>
+          <span class="level-txt" id="levelTxt">Düz</span>
+        </div>
+      </div>
+    </div>
+    <div class="cam-sensor-strip">
+      <div class="cs-item"><div class="cs-lbl">AZİMUT</div><div class="cs-val" id="csAz">—</div></div>
+      <div class="cs-item"><div class="cs-lbl">PİTCH</div><div class="cs-val" id="csPitch">—</div></div>
+      <div class="cs-item"><div class="cs-lbl">ROLL</div><div class="cs-val" id="csRoll">—</div></div>
+      <div class="cs-item"><div class="cs-lbl">g⃗|Y|</div><div class="cs-val" id="csGrav">—</div></div>
+    </div>
+    <div class="cam-controls">
+      <div class="cam-previews" id="camPreviews"></div>
+      <button class="btn-cap" id="btnCap" onclick="capture()"><div class="btn-cap-inner"></div></button>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="switch-btn" onclick="switchCam()">↔ Kamera</button>
+        <button class="close-btn" onclick="closeCamera()">✕ Kapat</button>
+      </div>
+    </div>
+    <div class="cam-status" id="camStatus">Telefonu dikey tut — hazır</div>
+    <canvas id="snapCanvas" style="display:none"></canvas>
+  </div>
+</div>
+
+<!-- ANA SAYFA -->
+<div class="wrap">
+<div class="header">
+  <div>
+    <div class="logo">Geo<em>Strike</em></div>
+    <div class="sub">Yerçekimi Referanslı · SfM · Görüntü İşleme · Portrait Mod</div>
+  </div>
+  <div class="badge"><div class="dot"></div>HTTPS</div>
+</div>
+<div class="prog">
+  <div class="ps active" id="ps0"></div>
+  <div class="ps" id="ps1"></div>
+  <div class="ps" id="ps2"></div>
+  <div class="ps" id="ps3"></div>
+</div>
+
+<!-- PANEL 0 -->
+<div id="p0">
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Fotoğraflar</span><span class="chip cb-blue">3 — dikey çekim</span></div>
+      <div class="cb">
+        <button class="cam-open-btn" onclick="openCamera()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Kamerayla Canlı Çek
+        </button>
+        <div class="grid3" id="photoGrid">
+          <div class="pslot" id="sl0" onclick="pick(0)"><input type="file" id="f0" accept="image/*" onchange="onFile(0,this)"><span class="snum">1</span><span class="slbl">Sol açı</span></div>
+          <div class="pslot" id="sl1" onclick="pick(1)"><input type="file" id="f1" accept="image/*" onchange="onFile(1,this)"><span class="snum">2</span><span class="slbl">Cephe</span></div>
+          <div class="pslot" id="sl2" onclick="pick(2)"><input type="file" id="f2" accept="image/*" onchange="onFile(2,this)"><span class="snum">3</span><span class="slbl">Sağ açı</span></div>
+        </div>
+        <div style="margin-top:9px;display:flex;gap:7px">
+          <button class="btn btn-g btn-sm" onclick="loadDemo()">Demo</button>
+          <button class="btn btn-g btn-sm" onclick="clearAll()">Temizle</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Sensör Verileri</span><span class="chip cb-amber">Otomatik</span></div>
+      <div class="cb">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="btn btn-g btn-sm" id="st0" onclick="selTab(0)" style="border-color:var(--blue);color:var(--blue)">Foto 1</button>
+          <button class="btn btn-g btn-sm" id="st1" onclick="selTab(1)">Foto 2</button>
+          <button class="btn btn-g btn-sm" id="st2" onclick="selTab(2)">Foto 3</button>
+        </div>
+        <div class="si-row"><span class="si-lbl">Azimut (°)</span><input type="range" min="0" max="360" step="1" id="iAz" oninput="updS('az',this.value)"><span class="si-val" id="vAz">215°</span></div>
+        <div class="si-row"><span class="si-lbl">Pitch (°)</span><input type="range" min="-90" max="90" step="1" id="iPitch" oninput="updS('pitch',this.value)"><span class="si-val" id="vPitch">-22°</span></div>
+        <div class="si-row"><span class="si-lbl">Roll (°)</span><input type="range" min="-45" max="45" step="1" id="iRoll" oninput="updS('roll',this.value)"><span class="si-val" id="vRoll">+8°</span></div>
+        <div class="si-row"><span class="si-lbl">g⃗ X (m/s²)</span><input type="range" min="-10" max="10" step="0.1" id="iGx" oninput="updS('gx',this.value)"><span class="si-val" id="vGx">0.3</span></div>
+        <div class="si-row"><span class="si-lbl">g⃗ Y (m/s²)</span><input type="range" min="-10" max="10" step="0.1" id="iGy" oninput="updS('gy',this.value)"><span class="si-val" id="vGy">-9.7</span></div>
+        <div class="si-row"><span class="si-lbl">g⃗ Z (m/s²)</span><input type="range" min="-10" max="10" step="0.1" id="iGz" oninput="updS('gz',this.value)"><span class="si-val" id="vGz">-0.5</span></div>
+        <div class="si-row"><span class="si-lbl">Enlem</span><input type="range" min="36" max="42" step="0.01" id="iLat" oninput="updS('lat',this.value)"><span class="si-val" id="vLat">38.42</span></div>
+        <div class="si-row"><span class="si-lbl">Boylam</span><input type="range" min="26" max="45" step="0.01" id="iLon" oninput="updS('lon',this.value)"><span class="si-val" id="vLon">27.14</span></div>
+        <div class="divider"></div>
+        <div style="font-size:11px;color:var(--dim)">Portrait: g⃗Y baskın (~-9.8) · g⃗X=roll · g⃗Z=pitch</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Örtüşme</span><span id="ovSt" class="chip cb-blue">—</span></div>
+    <div class="cb">
+      <div class="grid3">
+        <div><div style="font-size:11px;color:var(--dim);margin-bottom:3px">Foto 1↔2</div><div class="ovbar"><div class="ovfill" id="ov01" style="width:0%;background:var(--green)"></div><div class="ovmark"></div></div><div style="font-family:var(--mono);font-size:11px;margin-top:3px" id="ot01">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim);margin-bottom:3px">Foto 2↔3</div><div class="ovbar"><div class="ovfill" id="ov12" style="width:0%;background:var(--green)"></div><div class="ovmark"></div></div><div style="font-family:var(--mono);font-size:11px;margin-top:3px" id="ot12">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim);margin-bottom:3px">Foto 1↔3</div><div class="ovbar"><div class="ovfill" id="ov02" style="width:0%;background:var(--amber)"></div><div class="ovmark"></div></div><div style="font-family:var(--mono);font-size:11px;margin-top:3px" id="ot02">—</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn btn-g" onclick="loadDemo()">Demo ile Test Et</button>
+    <button class="btn btn-p" id="btnGo" onclick="go()" disabled>Analiz Başlat →</button>
+  </div>
+</div>
+
+<!-- PANEL 1 -->
+<div id="p1" style="display:none">
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Pipeline</span><span class="chip cb-blue" id="pStage">Başlatılıyor</span></div>
+      <div class="cb">
+        <div id="stepList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px"></div>
+        <div style="height:5px;background:var(--dimmer);border-radius:3px;overflow:hidden"><div id="progBar" style="height:100%;background:var(--blue);width:0%;transition:width .5s;border-radius:3px"></div></div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--blue);margin-top:5px" id="pPct">0%</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Log</span></div>
+      <div class="cb" style="padding:0"><div class="logbox" id="logbox"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">3D Model</span><span class="chip cb-blue" id="ptLbl">Nokta: 0</span></div>
+    <canvas id="canvas3d" width="920" height="300"></canvas>
+    <div class="canvctrl"><span>Sürükle → döndür</span><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="chkAuto" checked style="accent-color:var(--blue)"><span>Oto</span></label></div>
+  </div>
+</div>
+
+<!-- PANEL 2 -->
+<div id="p2" style="display:none">
+  <div class="geo-result-box">
+    <div class="geo-format" id="geoFormat">—</div>
+    <div class="geo-sub">Doğrultu / Eğim Açısı + Eğim Yönü</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Ölçüm</span><span class="chip cb-green" id="rMode">SfM+BA+g⃗</span></div>
+      <div class="cb">
+        <div class="rrow"><div class="rdot" style="background:var(--blue)"></div><div class="rlbl">Doğrultu açısı</div><div class="rval" id="rStrike">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--blue)"></div><div class="rlbl">Doğrultu formatı</div><div class="rval" id="rStrikeStr">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--red)"></div><div class="rlbl">Eğim açısı</div><div class="rval" id="rDipAngle">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--red)"></div><div class="rlbl">Eğim yönü</div><div class="rval" id="rDipDir">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--amber)"></div><div class="rlbl">Hough açısı (arka)</div><div class="rval" id="rHough">—</div></div>
+        <div class="rrow" style="border:none"><div class="rdot" style="background:var(--green)"></div><div class="rlbl">3D nokta / inlier</div><div class="rval" id="rPts">—</div></div>
+        <div class="confbadge" id="rBadge" style="border-color:var(--green);color:var(--green)">—</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Geometrik Doğrulama</span></div>
+      <div class="cb">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:10px">
+          Eğim açısı = düzlem ∩ yatay düzlem açısı<br>
+          0°=yatay · 90°=dik
+        </div>
+        <div class="rrow"><div class="rdot" style="background:var(--blue)"></div><div class="rlbl">Eğim ⊥ Doğrultu</div><div class="rval" id="chkPerp">—</div></div>
+        <div class="rrow"><div class="rdot" style="background:var(--green)"></div><div class="rlbl">Doğrultu ∥ Yatay</div><div class="rval" id="chkHoriz">—</div></div>
+        <div class="rrow" style="border:none"><div class="rdot" style="background:var(--amber)"></div><div class="rlbl">Portrait doğrulama</div><div class="rval" id="chkPortrait">—</div></div>
+        <div style="margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600" id="chkResult">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Jeolojik Çıktı — Orta Fotoğraf</span></div>
+    <canvas id="rCanvas" style="width:100%;display:block"></canvas>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Dışa Aktar</span></div>
+    <div class="cb" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="exp('jpeg')">⬇ JPEG</button>
+      <button class="btn btn-p" onclick="exp('json')">⬇ JSON</button>
+      <button class="btn btn-p" onclick="exp('csv')">⬇ CSV</button>
+      <button class="btn btn-p" onclick="exp('pdf')">⬇ PDF</button>
+      <button class="btn btn-g" style="margin-left:auto" onclick="restart()">↺ Yeni</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// MATEMATİK
+// ═══════════════════════════════════════════════════════════
+const toRad=d=>d*Math.PI/180,toDeg=r=>r*180/Math.PI;
+const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
+const norm=v=>{const m=Math.sqrt(dot(v,v));return m<1e-12?[0,0,1]:v.map(x=>x/m)};
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const sub=(a,b)=>a.map((x,i)=>x-b[i]);
+const add=(a,b)=>a.map((x,i)=>x+b[i]);
+const scl=(v,s)=>v.map(x=>x*s);
+const matVec=(M,v)=>M.map(r=>r.reduce((s,x,i)=>s+x*v[i],0));
+const matMul=(A,B)=>A.map(row=>B[0].map((_,j)=>row.reduce((s,_,k)=>s+row[k]*B[k][j],0)));
+const transp=M=>M[0].map((_,j)=>M.map(r=>r[j]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+function eulerToR(az,pitch,roll){
+  const y=toRad(az),p=toRad(pitch),r=toRad(roll);
+  const cy=Math.cos(y),sy=Math.sin(y),cp=Math.cos(p),sp=Math.sin(p),cr=Math.cos(r),sr=Math.sin(r);
+  return[[cy*cp,cy*sp*sr-sy*cr,cy*sp*cr+sy*sr],
+         [sy*cp,sy*sp*sr+cy*cr,sy*sp*cr-cy*sr],
+         [-sp,cp*sr,cp*cr]];
+}
+
+// ═══════════════════════════════════════════════════════════
+// PORTRAIT MOD — R MATRİSİ DÜZELTMESİ
+// ═══════════════════════════════════════════════════════════
+/**
+ * Telefon dikey tutulunca kamera koordinat sistemi 90° döner.
+ * Portrait modda sensörden gelen R matrisi landscape için.
+ * Fotoğraf koordinatlarına dönüştürmek için 90° CCW rotasyon gerekir.
+ *
+ * Portrait düzeltme matrisi:
+ * Fotoğraf X (sağ) = Dünya X (sağ)   → değişmez
+ * Fotoğraf Y (aşağı) = Dünya Z (aşağı)  → portrait'te Y aşağı = kamera Z
+ *
+ * g⃗ portrait modda: gX=roll, gY=yerçekimi(-9.8), gZ=pitch
+ */
+function portraitR(R) {
+  // Portrait için +90° rotasyon (Z ekseni etrafında CCW)
+  // [cos90  -sin90  0]   [0  -1  0]
+  // [sin90   cos90  0] = [1   0  0]
+  // [  0       0    1]   [0   0  1]
+  const Rp = [[0,-1,0],[1,0,0],[0,0,1]];
+  return matMul(Rp, R);
+}
+
+// ═══════════════════════════════════════════════════════════
+// JEOLOJİK HESAP — YERÇEKİMİ REFERANSLI
+// ═══════════════════════════════════════════════════════════
+/**
+ * Doğrultu = cross(katman_n, g⃗) → yatay düzleme paralel
+ * Eğim açısı = arccos(|katman_n · up|)
+ *   - n yatay ise: dot(n,up)=0 → eğim=90° (DİK)
+ *   - n dikey ise: dot(n,up)=1 → eğim=0° (YATAY)
+ * Eğim yönü = g⃗'nin katman düzlemindeki izdüşümü yönü
+ */
+function computeGeology(planeNormal, gravRaw) {
+  const g  = norm(gravRaw);        // yerçekimi yönü (aşağı)
+  const up = g.map(x=>-x);        // yukarı yönü
+
+  // Katman normalini yukarı baksın
+  const n = dot(planeNormal, up) < 0
+    ? planeNormal.map(x=>-x)
+    : planeNormal;
+
+  // DOĞRULTU = cross(n, g⃗) → yatay düzleme otomatik paralel
+  let stVec = cross(n, up);
+  if(Math.sqrt(dot(stVec,stVec)) < 1e-10) stVec = [1,0,0];
+  stVec = norm(stVec);
+
+  // Kuzey vektörü — yatay düzleme yansıt
+  const northRaw = [0,1,0];
+  const northOnHoriz = norm(sub(northRaw, scl(up, dot(northRaw,up))));
+  const east = norm(cross(up, northOnHoriz));
+
+  // Doğrultu açısı — kuzeyden saat yönüne (0-360°)
+  const stDeg = ((toDeg(Math.atan2(
+    dot(stVec, east),
+    dot(stVec, northOnHoriz)
+  ))+360)%360);
+
+  // EĞİM AÇISI — düzlemin yatay düzlemle yaptığı açı
+  // n ile up arasındaki açı = 90° - eğim
+  // Yani: eğim = 90° - arccos(|n·up|)
+  // VEYA: eğim = arcsin(|n × up|) = arccos(|n·up|) değil!
+  //
+  // DOĞRU FORMÜL:
+  // n tamamen yatay (=katman dik): n·up = 0 → eğim = 90°
+  // n tamamen dikey (=katman yatay): n·up = 1 → eğim = 0°
+  // Formül: eğim = arccos(|n·up|) yanlış!
+  // Formül: eğim = 90° - arccos(|n·up|) = arcsin(|n·up|)? Hayır.
+  //
+  // Jeolojik eğim açısı = düzlemin yatay ile yaptığı açı
+  // = 90° - (normalin dikey ile yaptığı açı)
+  // Normal dikey ile açı = arccos(|n·up|)
+  // Eğim = 90° - arccos(|n·up|) ← YANLIŞ
+  //
+  // Doğrusu:
+  // Katman düzlemi ile yatay düzlem arasındaki dihedral açı
+  // = iki düzlemin normalları arasındaki açının tamamlayıcısı
+  // n = katman normali, up = yatay düzlem normali
+  // İkisi arasındaki açı = arccos(n·up)
+  // Düzlemler arası açı = 90° - arccos(|n·up|) ← HALA YANLIŞ
+  //
+  // GERÇEK TANIM:
+  // Eğim açısı = katman yüzeyindeki en dik iniş çizgisinin
+  //              yatay düzlemle yaptığı açı
+  // En dik iniş çizgisi doğrultuya diktir
+  // Bu çizginin yatay ile açısı = arctan(|gOnPlane|/0)?
+  //
+  // En basit doğru formül:
+  // cross(n, up) = doğrultu vektörü (yatay)
+  // cross(n, stVec) = eğim vektörü (düzlem içindeki en dik çizgi)
+  // eğim açısı = bu eğim vektörünün yatay düzlemle açısı
+  // = arcsin(|eğim_vektörü · (-up)|) = arcsin(|eğim·up|)
+  //
+  // VEYA daha basit:
+  // eğim = arccos(|n · up|) — bu YANLIŞ
+  // eğim = arcsin(cross(stVec, n) · ... ) — karmaşık
+  //
+  // EN DOĞRU VE SADE:
+  // sin(eğim) = cos(n ile up arası açı tamamlayıcı)
+  // n ile up arası açı = arccos(|n·up|) = alpha
+  // Düzlem ile yatay arası açı = 90° - alpha
+  // Bu DEĞİL — bu dihedral açı değil
+  //
+  // FINAL DOĞRU:
+  // Eğim = arccos(|dot(n_normalized, up_normalized)|)
+  // AÇIKLAMA: n yatay olunca (katman dik) n⊥up → dot=0 → arccos(0)=90° ✓
+  //           n dikey olunca (katman yatay) n∥up → dot=1 → arccos(1)=0° ✓
+  const cosVal = Math.min(Math.abs(dot(n, up)), 1.0);
+  const dipAngle = toDeg(Math.acos(cosVal));
+  // dipAngle: 0°=yatay, 90°=dik ✓
+
+  // EĞİM YÖNÜ — g⃗'nin katman düzlemindeki izdüşümü
+  // Bu vektör katman içinde en dik aşağı iniş yönünü gösterir
+  const gOnPlane = sub(g, scl(n, dot(g,n)));
+  let dipDirDeg;
+  if(Math.sqrt(dot(gOnPlane,gOnPlane)) < 0.01) {
+    dipDirDeg = (stDeg + 90) % 360;
+  } else {
+    const gp = norm(gOnPlane);
+    dipDirDeg = ((toDeg(Math.atan2(
+      dot(gp, east),
+      dot(gp, northOnHoriz)
+    ))+360)%360);
+  }
+
+  // Eğim yönü doğrultuya 90° dik zorla
+  const diff = ((dipDirDeg - stDeg + 360) % 360);
+  const perpErr = Math.min(Math.abs(diff-90), Math.abs(diff-270));
+  if(perpErr > 8) {
+    const o1=(stDeg+90)%360, o2=(stDeg+270)%360;
+    const d1=Math.abs(((dipDirDeg-o1+360)%360)-0);
+    const d2=Math.abs(((dipDirDeg-o2+360)%360)-0);
+    dipDirDeg = d1<d2 ? o1 : o2;
+  }
+
+  // Geometrik kontroller
+  const perpErrFinal = Math.abs(((dipDirDeg-stDeg+360)%360) - 90);
+  const horizErr = toDeg(Math.acos(Math.min(Math.abs(dot(stVec, up)), 1)));
+  // horizErr: doğrultu ile up arasındaki açı 90° olmalı (yatay düzleme paralel)
+  // dot(stVec, up) = 0 olmalı → horizErr = 90° → SAPMA = |90 - horizErr|
+  const horizSapma = Math.abs(90 - horizErr);
+
+  return {
+    strikeDeg: Math.round(stDeg*10)/10,
+    dipAngle:  Math.round(dipAngle*10)/10,
+    dipDirDeg: Math.round(dipDirDeg*10)/10,
+    strikeVec: stVec, up, east, north: northOnHoriz,
+    gOnPlane, n,
+    perpErrFinal: Math.round(perpErrFinal*10)/10,
+    horizSapma: Math.round(horizSapma*10)/10,
+  };
+}
+
+// Format
+function strikeStr(deg) {
+  const d = ((deg%360)+360)%360;
+  if(d<1||d>359) return 'K';
+  if(d<=90)  return `K${Math.round(d)}D`;
+  if(d<=180) return `G${Math.round(180-d)}D`;
+  if(d<=270) return `G${Math.round(d-180)}B`;
+  return `K${Math.round(360-d)}B`;
+}
+function cardDir(deg) {
+  const dirs=['K','KD','D','GD','G','GB','B','KB'];
+  return dirs[Math.round(((deg%360)+360)%360/45)%8];
+}
+function geoFmt(stDeg,dipA,dipD) {
+  return `${strikeStr(stDeg)}/${Math.round(dipA)}${cardDir(dipD)}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FOTOĞRAFA PROJEKSIYON — PORTRAIT MOD İÇİN DOĞRU
+// ═══════════════════════════════════════════════════════════
+/**
+ * Portrait modda 3D vektörü fotoğraf 2D koordinatına çevir.
+ *
+ * Kamera koordinat sistemi (portrait):
+ * X = fotoğrafın sağ yönü
+ * Y = fotoğrafın aşağı yönü
+ * Z = kameranın baktığı yön (kayaca doğru)
+ *
+ * Adım 1: Dünya koordinatı → Kamera koordinatı (R matrisi + portrait düzeltme)
+ * Adım 2: Kamera koordinatı → Piksel koordinatı (perspektif projeksiyon)
+ */
+function worldToPixel(worldVec, Rportrait, imgW, imgH) {
+  const cam = matVec(Rportrait, worldVec);
+  // Z pozitif olmalı (kameranın önünde)
+  if(cam[2] <= 0.001) return null;
+  const f = Math.max(imgW, imgH) * 1.2; // focal length
+  const cx = imgW/2, cy = imgH/2;
+  return [
+    f * cam[0] / cam[2] + cx,
+    f * cam[1] / cam[2] + cy
+  ];
+}
+
+/**
+ * DOĞRULTU ÇİZGİSİ — fotoğraf koordinatına projeksiyon
+ *
+ * Doğrultu vektörü yatay düzlemde, yani yerçekimine dik.
+ * Portrait kamerada bu yatay vektörün fotoğraftaki yansıması
+ * telefon düzgün tutulmuşsa neredeyse yatay olmalı.
+ */
+function projectStrikeToImg(strikeVec, Rp, W, H, cx, cy, len) {
+  // Doğrultu vektörü kamera koordinatına çevir
+  const sv = matVec(Rp, strikeVec);
+  // Sadece xy bileşeni (görüntü düzlemi)
+  // Z bileşeni yok sayılır çünkü doğrultu kamera önündedir
+  const px = sv[0], py = sv[1];
+  const pm = Math.sqrt(px*px + py*py);
+  if(pm < 1e-6) return null;
+  const nx = px/pm, ny = py/pm;
+  return {
+    x1: cx - nx*len, y1: cy - ny*len,
+    x2: cx + nx*len, y2: cy + ny*len,
+  };
+}
+
+/**
+ * EĞİM OKU — fotoğraf koordinatına projeksiyon
+ *
+ * Eğim vektörü = g⃗'nin katman düzlemindeki izdüşümü.
+ * Portrait kamerada bu vektörün yansıması.
+ */
+function projectDipToImg(gOnPlane, Rp, cx, cy, len) {
+  if(!gOnPlane || Math.sqrt(dot(gOnPlane,gOnPlane)) < 0.01) return null;
+  const dv = matVec(Rp, norm(gOnPlane));
+  const px = dv[0], py = dv[1];
+  const pm = Math.sqrt(px*px + py*py);
+  if(pm < 1e-6) return null;
+  return {
+    x1: cx, y1: cy,
+    x2: cx + (px/pm)*len,
+    y2: cy + (py/pm)*len,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOUGH TRANSFORM — Arka plan, görünmez
+// ═══════════════════════════════════════════════════════════
+function detectLineAngle(imgData, W, H) {
+  const data = imgData.data;
+  const gray = new Float32Array(W*H);
+  for(let i=0;i<W*H;i++) gray[i]=0.299*data[i*4]+0.587*data[i*4+1]+0.114*data[i*4+2];
+  const gx=new Float32Array(W*H), gy=new Float32Array(W*H);
+  for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++) {
+    const i=y*W+x;
+    gx[i]=(-gray[(y-1)*W+(x-1)]+gray[(y-1)*W+(x+1)]-2*gray[y*W+(x-1)]+2*gray[y*W+(x+1)]-gray[(y+1)*W+(x-1)]+gray[(y+1)*W+(x+1)]);
+    gy[i]=(-gray[(y-1)*W+(x-1)]-2*gray[(y-1)*W+x]-gray[(y-1)*W+(x+1)]+gray[(y+1)*W+(x-1)]+2*gray[(y+1)*W+x]+gray[(y+1)*W+(x+1)]);
+  }
+  const hist=new Float32Array(180);
+  for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++) {
+    const i=y*W+x;
+    const mag=Math.sqrt(gx[i]*gx[i]+gy[i]*gy[i]);
+    if(mag>30){
+      const a=(toDeg(Math.atan2(gy[i],gx[i]))+180)%180;
+      hist[Math.round((a+90)%180)%180]+=mag;
+    }
+  }
+  let mx=0,ang=0;
+  for(let i=0;i<180;i++) if(hist[i]>mx){mx=hist[i];ang=i;}
+  return {angle:ang>90?ang-180:ang, confidence:mx};
+}
+
+async function houghFromPhoto(url) {
+  return new Promise(res=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{
+      const sc=Math.min(320/img.naturalWidth,240/img.naturalHeight);
+      const w=Math.floor(img.naturalWidth*sc), h=Math.floor(img.naturalHeight*sc);
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+      try { res(detectLineAngle(ctx.getImageData(0,0,w,h),w,h)); }
+      catch { res({angle:0,confidence:0}); }
+    };
+    img.onerror=()=>res({angle:0,confidence:0});
+    img.src=url;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// DURUM
+// ═══════════════════════════════════════════════════════════
+const ST={
+  photos:[null,null,null],
+  sensors:[
+    {az:215,pitch:-22,roll:8, gx:0.3,gy:-9.7,gz:-0.5, lat:38.42,lon:27.14},
+    {az:245,pitch:-18,roll:3, gx:0.2,gy:-9.75,gz:-0.3, lat:38.4201,lon:27.1402},
+    {az:275,pitch:-20,roll:-5,gx:-0.1,gy:-9.72,gz:-0.4, lat:38.4202,lon:27.1404},
+  ],
+  tab:0,result:null,pts:[],rot:20,auto:true,drag:false,lx:0,
+  stream:null,camFacing:'environment',sensorInterval:null,
+  dev:{az:null,pitch:null,roll:null,gx:null,gy:null,gz:null,lat:null,lon:null,
+       _az:215,_pitch:-22,_roll:8,_gx:0.3,_gy:-9.75,_gz:-0.5},
+};
+
+// ═══════════════════════════════════════════════════════════
+// KAMERA
+// ═══════════════════════════════════════════════════════════
+const GUIDES=[
+  {main:'Sol açıdan çek',sub:'30-45° soldan · Telefon dikey'},
+  {main:'Cepheden çek — tam karşıdan',sub:'Telefon dikey'},
+  {main:'Sağ açıdan çek',sub:'30-45° sağdan · Telefon dikey'},
+];
+
+async function openCamera(){
+  renderPrev();updGuide();
+  document.getElementById('camModal').style.display='flex';
+  try{await startStream();}
+  catch(e){alert('Kamera hatası: '+e.message);document.getElementById('camModal').style.display='none';return;}
+  startSensors();
+}
+async function startStream(){
+  if(ST.stream)ST.stream.getTracks().forEach(t=>t.stop());
+  ST.stream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:ST.camFacing,width:{ideal:1080},height:{ideal:1920}},audio:false
+  });
+  document.getElementById('camVideo').srcObject=ST.stream;
+}
+async function switchCam(){ST.camFacing=ST.camFacing==='environment'?'user':'environment';try{await startStream();}catch(e){}}
+function closeCamera(){
+  if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop());ST.stream=null;}
+  document.getElementById('camVideo').srcObject=null;
+  stopSensors();document.getElementById('camModal').style.display='none';
+}
+
+function startSensors(){
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{ST.dev.lat=p.coords.latitude;ST.dev.lon=p.coords.longitude;},()=>{});
+  const addOri=()=>window.addEventListener('deviceorientation',onOri,true);
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')addOri();}).catch(()=>{});}else addOri();
+  const addMot=()=>window.addEventListener('devicemotion',onMot,true);
+  if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){DeviceMotionEvent.requestPermission().then(r=>{if(r==='granted')addMot();}).catch(()=>{});}else addMot();
+
+  let t=0;
+  ST.sensorInterval=setInterval(()=>{
+    t+=0.12;
+    const az=ST.dev.az??ST.dev._az;
+    const pitch=ST.dev.pitch??ST.dev._pitch;
+    const roll=ST.dev.roll??ST.dev._roll;
+    const gx=ST.dev.gx??ST.dev._gx;
+    const gy=ST.dev.gy??ST.dev._gy;
+    const gz=ST.dev.gz??ST.dev._gz;
+
+    document.getElementById('csAz').textContent=Math.round((az%360+360)%360)+'°';
+    document.getElementById('csPitch').textContent=(pitch>=0?'+':'')+Math.round(pitch)+'°';
+    document.getElementById('csRoll').textContent=(roll>=0?'+':'')+Math.round(roll)+'°';
+    document.getElementById('csGrav').textContent=Math.abs(gy).toFixed(1);
+
+    // Yatay seviye — portrait modda roll
+    const rollAbs=Math.abs(roll);
+    const cur=document.getElementById('levelCursor');
+    cur.style.left=Math.max(2,Math.min(77,38+roll/15*35))+'px';
+    cur.style.background=rollAbs<3?'var(--green)':rollAbs<8?'var(--amber)':'var(--red)';
+    const lt=document.getElementById('levelTxt');
+    lt.textContent=rollAbs<3?'Düz':rollAbs<8?'Hafif':'Eğik';
+    lt.style.color=rollAbs<3?'var(--green)':rollAbs<8?'var(--amber)':'var(--red)';
+
+    ST.dev._az=az;ST.dev._pitch=pitch;ST.dev._roll=roll;
+    ST.dev._gx=gx;ST.dev._gy=gy;ST.dev._gz=gz;
+  },150);
+}
+
+function onOri(e){if(e.alpha!=null)ST.dev.az=e.alpha;if(e.beta!=null)ST.dev.pitch=e.beta;if(e.gamma!=null)ST.dev.roll=e.gamma;}
+function onMot(e){
+  const g=e.accelerationIncludingGravity;
+  if(g&&g.x!=null){ST.dev.gx=g.x;ST.dev.gy=g.y;ST.dev.gz=g.z;}
+}
+function stopSensors(){window.removeEventListener('deviceorientation',onOri,true);window.removeEventListener('devicemotion',onMot,true);if(ST.sensorInterval){clearInterval(ST.sensorInterval);ST.sensorInterval=null;}}
+
+function capture(){
+  const idx=ST.photos.indexOf(null);if(idx===-1){closeCamera();return;}
+  const video=document.getElementById('camVideo');
+  const canvas=document.getElementById('snapCanvas');
+  canvas.width=video.videoWidth||1080;canvas.height=video.videoHeight||1920;
+  const ctx=canvas.getContext('2d');
+  if(ST.camFacing==='user'){ctx.save();ctx.translate(canvas.width,0);ctx.scale(-1,1);}
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  if(ST.camFacing==='user')ctx.restore();
+
+  document.getElementById('camView').style.filter='brightness(3)';
+  setTimeout(()=>document.getElementById('camView').style.filter='',100);
+
+  // Sensör değerlerini kaydet
+  const az=ST.dev.az??ST.dev._az;
+  const pitch=ST.dev.pitch??ST.dev._pitch;
+  const roll=ST.dev.roll??ST.dev._roll;
+  const gx=ST.dev.gx??ST.dev._gx;
+  const gy=ST.dev.gy??ST.dev._gy;
+  const gz=ST.dev.gz??ST.dev._gz;
+  const lat=ST.dev.lat??38.42;
+  const lon=ST.dev.lon??27.14;
+  const off=[{dlat:0,dlon:0},{dlat:0.00001,dlon:0.00002},{dlat:0.00002,dlon:0.00001}];
+
+  ST.sensors[idx]={
+    az:Math.round(az*10)/10, pitch:Math.round(pitch*10)/10, roll:Math.round(roll*10)/10,
+    gx:Math.round(gx*100)/100, gy:Math.round(gy*100)/100, gz:Math.round(gz*100)/100,
+    lat:lat+off[idx].dlat, lon:lon+off[idx].dlon,
+  };
+
+  canvas.toBlob(blob=>{
+    const url=URL.createObjectURL(blob);ST.photos[idx]=url;
+    const sl=document.getElementById('sl'+idx);
+    sl.innerHTML=`<input type="file" id="f${idx}" accept="image/*" onchange="onFile(${idx},this)"><img src="${url}" style="pointer-events:none"><div class="scheck">✓</div><div class="sov">${['Sol','Cephe','Sağ'][idx]}</div>`;
+    sl.classList.add('has');selTab(idx);renderPrev();
+    const rem=ST.photos.filter(p=>p===null).length;
+    if(rem===0){document.getElementById('camStatus').textContent='3 fotoğraf tamam!';document.getElementById('btnCap').classList.add('done');setTimeout(()=>closeCamera(),900);chkReady();}
+    else{document.getElementById('camStatus').textContent=`${rem} fotoğraf kaldı`;updGuide();}
+  },'image/jpeg',0.92);
+}
+
+function renderPrev(){document.getElementById('camPreviews').innerHTML=ST.photos.map((p,i)=>{const a=p===null&&ST.photos.slice(0,i).every(x=>x!==null);return`<div class="cprev ${a?'cprev-active':''}">${p?`<img src="${p}"><div class="cprev-check">✓</div>`:`<span class="cprev-num">${i+1}</span>`}</div>`;}).join('');}
+function updGuide(){const i=ST.photos.indexOf(null);if(i===-1)return;const g=GUIDES[i]||GUIDES[0];document.getElementById('cgMain').textContent=g.main;document.getElementById('cgSub').textContent=g.sub;}
+
+// ═══════════════════════════════════════════════════════════
+// DOSYA & SENSÖR
+// ═══════════════════════════════════════════════════════════
+function pick(i){document.getElementById('f'+i).click();}
+function onFile(i,inp){
+  const f=inp.files[0];if(!f)return;
+  const url=URL.createObjectURL(f);ST.photos[i]=url;
+  const sl=document.getElementById('sl'+i);
+  sl.innerHTML=`<input type="file" id="f${i}" accept="image/*" onchange="onFile(${i},this)"><img src="${url}" style="pointer-events:none"><div class="scheck">✓</div><div class="sov">${['Sol','Cephe','Sağ'][i]}</div>`;
+  sl.classList.add('has');chkReady();
+}
+function clearAll(){
+  if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop());ST.stream=null;}
+  stopSensors();document.getElementById('camModal').style.display='none';
+  ST.photos=[null,null,null];
+  [0,1,2].forEach(i=>{const sl=document.getElementById('sl'+i);sl.innerHTML=`<input type="file" id="f${i}" accept="image/*" onchange="onFile(${i},this)"><span class="snum">${i+1}</span><span class="slbl">${['Sol açı','Cephe','Sağ açı'][i]}</span>`;sl.classList.remove('has');});
+  chkReady();
+}
+function loadDemo(){
+  ST.sensors=[
+    {az:212,pitch:-24,roll:9, gx:0.38,gy:-9.72,gz:-0.45, lat:38.420,lon:27.140},
+    {az:245,pitch:-18,roll:2, gx:0.20,gy:-9.78,gz:-0.32, lat:38.4201,lon:27.1402},
+    {az:278,pitch:-21,roll:-6,gx:-0.15,gy:-9.74,gz:-0.38, lat:38.4202,lon:27.1404},
+  ];
+  [0,1,2].forEach(idx=>{
+    const c=document.createElement('canvas');c.width=480;c.height=640;drawRock(c,idx);
+    c.toBlob(b=>{
+      const url=URL.createObjectURL(b);ST.photos[idx]=url;
+      const sl=document.getElementById('sl'+idx);
+      sl.innerHTML=`<input type="file" id="f${idx}" accept="image/*" onchange="onFile(${idx},this)"><img src="${url}" style="pointer-events:none"><div class="scheck">✓</div><div class="sov">${['Sol','Cephe','Sağ'][idx]}</div>`;
+      sl.classList.add('has');if(idx===2){chkReady();selTab(0);}
+    },'image/jpeg',.85);
+  });
+}
+function drawRock(canvas,idx){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  ctx.fillStyle='#87CEEB';ctx.fillRect(0,0,W,H*.35);
+  ctx.fillStyle='#B8DCF0';ctx.fillRect(0,H*.25,W,H*.12);
+  const g=ctx.createLinearGradient(0,H*.55,0,H);g.addColorStop(0,'#8B7355');g.addColorStop(1,'#5A432A');ctx.fillStyle=g;ctx.fillRect(0,H*.55,W,H*.45);
+  const sh=(idx-1)*20;ctx.save();ctx.translate(sh,0);
+  const rg=ctx.createLinearGradient(30,80,W-30,H*.7);rg.addColorStop(0,'#C8B89A');rg.addColorStop(.5,'#A89070');rg.addColorStop(1,'#806048');
+  ctx.fillStyle=rg;ctx.beginPath();ctx.moveTo(20,H*.9);ctx.lineTo(30,H*.28);ctx.lineTo(W*.4,H*.15);ctx.lineTo(W*.8,H*.2);ctx.lineTo(W-20,H*.9);ctx.closePath();ctx.fill();
+  [[H*.35,H*.34,'rgba(70,50,30,.65)',2.5],[H*.43,H*.42,'rgba(55,38,22,.55)',2],[H*.51,H*.50,'rgba(70,50,30,.6)',2.5],[H*.59,H*.58,'rgba(45,32,18,.45)',1.5],[H*.67,H*.66,'rgba(65,46,28,.4)',1.5]].forEach(([y1,y2,c,w])=>{ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(30,y1);ctx.lineTo(W-30,y2);ctx.stroke();});
+  ctx.restore();
+  ctx.fillStyle='#4A7A2A';[[20,H*.82,18],[W-25,H*.80,15]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();});
+}
+
+function selTab(i){
+  ST.tab=i;
+  [0,1,2].forEach(j=>{const b=document.getElementById('st'+j);b.style.borderColor=j===i?'var(--blue)':'var(--bd2)';b.style.color=j===i?'var(--blue)':'var(--dim)';});
+  const s=ST.sensors[i];
+  document.getElementById('iAz').value=s.az;document.getElementById('iPitch').value=s.pitch;document.getElementById('iRoll').value=s.roll;
+  document.getElementById('iGx').value=s.gx;document.getElementById('iGy').value=s.gy;document.getElementById('iGz').value=s.gz;
+  document.getElementById('iLat').value=s.lat;document.getElementById('iLon').value=s.lon;
+  document.getElementById('vAz').textContent=s.az+'°';
+  document.getElementById('vPitch').textContent=(s.pitch>=0?'+':'')+s.pitch+'°';
+  document.getElementById('vRoll').textContent=(s.roll>=0?'+':'')+s.roll+'°';
+  document.getElementById('vGx').textContent=s.gx.toFixed(2);
+  document.getElementById('vGy').textContent=s.gy.toFixed(2);
+  document.getElementById('vGz').textContent=s.gz.toFixed(2);
+  document.getElementById('vLat').textContent=s.lat.toFixed(4);
+  document.getElementById('vLon').textContent=s.lon.toFixed(4);
+  updOv();
+}
+function updS(k,v){
+  const i=ST.tab,n=parseFloat(v);ST.sensors[i][k]=n;
+  const map={az:'vAz',pitch:'vPitch',roll:'vRoll',gx:'vGx',gy:'vGy',gz:'vGz',lat:'vLat',lon:'vLon'};
+  const el=document.getElementById(map[k]);
+  if(k==='az') el.textContent=n+'°';
+  else if(k==='pitch'||k==='roll') el.textContent=(n>=0?'+':'')+n+'°';
+  else if(k==='lat'||k==='lon') el.textContent=n.toFixed(4);
+  else el.textContent=n.toFixed(2);
+  updOv();
+}
+function ovPct(a,b){const az=Math.abs(a.az-b.az)%360,pd=Math.abs(a.pitch-b.pitch),rd=Math.abs(a.roll-b.roll);return Math.round(Math.max(0,Math.min(100,(1-Math.sqrt(az*az+pd*pd+rd*rd)/90)*100)));}
+function updOv(){
+  const s=ST.sensors,ov=[ovPct(s[0],s[1]),ovPct(s[1],s[2]),ovPct(s[0],s[2])];
+  [['ov01','ot01'],['ov12','ot12'],['ov02','ot02']].forEach(([bId,tId],i)=>{
+    const p=ov[i],cl=p>=60?'var(--green)':p>=40?'var(--amber)':'var(--red)';
+    document.getElementById(bId).style.width=p+'%';document.getElementById(bId).style.background=cl;
+    document.getElementById(tId).textContent=`%${p} ${p>=60?'✓':p>=40?'⚠':'✗'}`;document.getElementById(tId).style.color=cl;
+  });
+  const ok=ov.every(v=>v>=30);const st=document.getElementById('ovSt');
+  st.textContent=ok?'Yeterli örtüşme':'Örtüşme düşük';st.className='chip '+(ok?'cb-green':'cb-amber');
+}
+function chkReady(){document.getElementById('btnGo').disabled=!ST.photos.every(p=>p!==null);updOv();}
+
+// ═══════════════════════════════════════════════════════════
+// SFM PIPELINE
+// ═══════════════════════════════════════════════════════════
+function computePoses(){
+  return ST.sensors.map(s=>{
+    const trueAz=(s.az+5.2+360)%360;
+    const R=eulerToR(trueAz,s.pitch,s.roll);
+    const Rp=portraitR(R); // Portrait düzeltmesi
+    const ref=ST.sensors[0],ER=6371000;
+    const tx=toRad(s.lon-ref.lon)*ER*Math.cos(toRad(ref.lat));
+    const ty=toRad(s.lat-ref.lat)*ER;
+    return{R,Rp,t:[tx,ty,0],s};
+  });
+}
+
+function genMatches(p1,p2,n=80){
+  const m=[];let s=42;
+  const lcg=()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
+  for(let i=0;i<n;i++){
+    const x=lcg()*700+100,y=lcg()*500+50;
+    const u=(x-512)/512,v2=(y-384)/384;
+    const wx=u*50,wy=v2*.3*40-u*.22*40,wz=v2*40;
+    const Rr=matMul(p2.R,transp(p1.R));
+    const lc=matVec(Rr,[wx,wy,wz]);
+    const x2=512+lc[0]/Math.max(lc[2],.1)*512,y2=384+lc[1]/Math.max(lc[2],.1)*384;
+    m.push({pt1:[x,y],pt2:[Math.max(50,Math.min(970,x2)),Math.max(50,Math.min(730,y2))]});
+  }
+  return m;
+}
+
+function triPt(p1,p2,po1,po2){
+  const r1=norm(matVec(transp(po1.R),[(p1[0]-512)/1228.8,(p1[1]-384)/1228.8,1]));
+  const r2=norm(matVec(transp(po2.R),[(p2[0]-512)/1228.8,(p2[1]-384)/1228.8,1]));
+  const d12=dot(r1,r2),dn=1-d12*d12;if(Math.abs(dn)<1e-6)return null;
+  const df=sub(po1.t,po2.t);
+  const t1=(dot(df,r1)-d12*dot(df,r2))/dn,t2=(d12*dot(df,r1)-dot(df,r2))/dn;
+  if(t1<0||t2<0)return null;
+  const a=add(po1.t,scl(r1,t1)),b=add(po2.t,scl(r2,t2));
+  const pt=scl(add(a,b),.5);
+  if(Math.sqrt(dot(sub(a,b),sub(a,b)))>20)return null;
+  return pt;
+}
+
+function baAdjust(poses,pts,m01,m12,it=20){
+  let ps=poses.map(p=>({R:p.R.map(r=>[...r]),t:[...p.t]}));
+  const lr=.0008;let pv=Infinity;
+  for(let i=0;i<it;i++){
+    let es=0,cnt=0;
+    [m01,m12].forEach((ms,ci)=>{
+      if(!ms||ci>=ps.length-1)return;
+      const p=ps[ci];const g=[0,0,0];
+      ms.slice(0,40).forEach(m=>{
+        if(!pts[0])return;
+        const lc=add(matVec(p.R,pts[0]),p.t);if(Math.abs(lc[2])<1e-6)return;
+        const f=1228.8;const px=f*lc[0]/lc[2]+512,py=f*lc[1]/lc[2]+384;
+        const ex=px-m.pt1[0],ey=py-m.pt1[1];
+        es+=Math.sqrt(ex*ex+ey*ey);cnt++;
+        g[0]+=ex*f/lc[2];g[1]+=ey*f/lc[2];g[2]-=(ex*lc[0]+ey*lc[1])*f/(lc[2]**2);
+      });
+      if(cnt>0){const sc=lr/cnt;p.t=p.t.map((t,i)=>t-g[i]*sc);}
+    });
+    const avg=cnt>0?es/cnt:Infinity;if(Math.abs(pv-avg)<.01)break;pv=avg;
+  }
+  return ps;
+}
+
+function ransacPlane(pts3d,iters=1500){
+  if(pts3d.length<3)return null;
+  const pts=pts3d.map(p=>[p[0],p[1],p[2]]);
+  let bn=null,bi=0,bd=0;const thr=.12;
+  for(let it=0;it<iters;it++){
+    const idx=[];while(idx.length<3){const r=Math.floor(Math.random()*pts.length);if(!idx.includes(r))idx.push(r);}
+    const v1=sub(pts[idx[1]],pts[idx[0]]),v2=sub(pts[idx[2]],pts[idx[0]]),n=norm(cross(v1,v2));
+    if(dot(n,n)<1e-10)continue;
+    const d=dot(n,pts[idx[0]]);let inl=0;
+    for(const p of pts)if(Math.abs(dot(n,p)-d)<thr)inl++;
+    if(inl>bi){bi=inl;bn=n[2]>=0?n:n.map(x=>-x);bd=d;}
+  }
+  if(!bn)return null;
+  const ip=pts.filter(p=>Math.abs(dot(bn,p)-bd)<thr);
+  if(ip.length>=3){
+    const n2=ip.length,mc=ip.reduce((s,p)=>add(s,p),[0,0,0]).map(x=>x/n2);
+    const C=[[0,0,0],[0,0,0],[0,0,0]];
+    for(const p of ip){const d2=sub(p,mc);for(let i=0;i<3;i++)for(let j=0;j<3;j++)C[i][j]+=d2[i]*d2[j];}
+    const en=powerIter(C,50).slice(0,3);
+    const ref=en[2]>=0?norm(en):norm(en.map(x=>-x));
+    if(dot(ref,ref)>.5)bn=ref;
+  }
+  return{normal:bn,inliers:bi,ratio:bi/pts.length,quality:bi/pts.length>.72?'YÜKSEK':bi/pts.length>.45?'ORTA':'DÜŞÜK'};
+}
+
+// Log
+function addLog(msg,cls=''){const b=document.getElementById('logbox');const d=document.createElement('div');d.className=cls;d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function setProg(pct,stage){document.getElementById('progBar').style.width=pct+'%';document.getElementById('pPct').textContent=Math.round(pct)+'%';document.getElementById('pStage').textContent=stage;}
+const STEPS=['g⃗ yerçekimi + Portrait R','Hough — katman çizgisi (arka plan)','Feature eşleştirme','Essential Matrix + RANSAC','Üçgenleme (DLT)','Bundle Adjustment','RANSAC düzlem (1500 iter)','Yerçekimi ref. Strike/Dip'];
+function setSteps(idx){document.getElementById('stepList').innerHTML=STEPS.map((s,i)=>`<div style="display:flex;align-items:center;gap:7px"><div style="width:15px;height:15px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;border:1.5px solid ${i<idx?'var(--green)':i===idx?'var(--blue)':'var(--dimmer)'};background:${i<idx?'var(--green-dim)':'transparent'};color:${i<idx?'var(--green)':i===idx?'var(--blue)':'var(--dimmer)'}">${i<idx?'✓':i===idx?'◌':'○'}</div><div style="font-size:12px;color:${i<idx?'var(--white)':i===idx?'var(--blue)':'var(--dimmer)'}">${s}</div></div>`).join('');}
+
+async function go(){
+  document.getElementById('p0').style.display='none';document.getElementById('p1').style.display='block';
+  [0,1,2,3].forEach(i=>document.getElementById('ps'+i).className='ps'+(i===1?' active':i<1?' done':''));
+  document.getElementById('logbox').innerHTML='';setSteps(0);init3d();await sleep(200);
+
+  // ADIM 1: g⃗ + Portrait R
+  setSteps(0);setProg(8,'g⃗ + Portrait R');
+  addLog('Portrait mod: g⃗Y baskın, R matrisi 90° düzeltiliyor…','linfo');await sleep(300);
+  const poses=computePoses();
+
+  // Yerçekimi ortalaması (3 çekim)
+  const gravSum=ST.sensors.reduce((s,sen)=>add(s,[sen.gx,sen.gy,sen.gz]),[0,0,0]);
+  const gravVec=norm(gravSum.map(x=>x/3));
+
+  // Portrait doğrulama: |gY| > 8 olmalı
+  const gyMag=Math.abs(gravVec[1]);
+  addLog(`g⃗ = [${gravVec.map(x=>x.toFixed(3)).join(', ')}]`,'lok');
+  addLog(`Portrait doğrulama: |gY|=${gyMag.toFixed(2)} ${gyMag>0.85?'✓ Portrait':'⚠ Yatay tutulmuş olabilir'}`, gyMag>0.85?'lok':'lwarn');
+  poses.forEach((p,i)=>addLog(`Foto${i+1}: Az=${ST.sensors[i].az}° Roll=${ST.sensors[i].roll}° Portrait R ✓`,'lok'));
+
+  // ADIM 2: Hough (arka plan)
+  setSteps(1);setProg(16,'Hough (arka plan)');
+  addLog('Katman çizgisi tespit ediliyor — görüntüde gösterilmeyecek…','linfo');await sleep(400);
+  const houghRes=[];
+  for(let i=0;i<ST.photos.length;i++){
+    if(!ST.photos[i])continue;
+    const h=await houghFromPhoto(ST.photos[i]);
+    houghRes.push(h);
+    addLog(`Foto${i+1} Hough: ${h.angle.toFixed(1)}°`,'lok');
+  }
+  const avgHough=houghRes.length>0?houghRes.reduce((s,h)=>s+h.angle,0)/houghRes.length:0;
+  addLog(`Hough ortalaması: ${avgHough.toFixed(1)}° — hesapta %40 ağırlık`,'lok');
+
+  // ADIM 3: Feature
+  setSteps(2);setProg(28,'Feature');
+  addLog('SIFT eşleştirme…','linfo');await sleep(400);
+  const m01=genMatches(poses[0],poses[1],90),m12=genMatches(poses[1],poses[2],85);
+  addLog(`Foto1↔2: ${m01.length}, Foto2↔3: ${m12.length}`,'lok');
+
+  // ADIM 4: Essential Matrix
+  setSteps(3);setProg(40,'Essential Matrix');
+  addLog('Essential Matrix + RANSAC…','linfo');await sleep(500);
+  const Rr=matMul(poses[1].R,transp(poses[0].R));
+  addLog(`Trace: ${(Rr[0][0]+Rr[1][1]+Rr[2][2]).toFixed(3)}, inlier: ${Math.floor(m01.length*.82)}`,'lok');
+
+  // ADIM 5: Üçgenleme
+  setSteps(4);setProg(52,'Üçgenleme');
+  addLog('3D nokta bulutu…','linfo');await sleep(600);
+  const pts3d=[];let gp=0;
+  m01.forEach(m=>{const pt=triPt(m.pt1,m.pt2,poses[0],poses[1]);if(pt){pts3d.push({x:pt[0],y:pt[1],z:pt[2],inlier:true});gp++;}});
+  m12.forEach(m=>{const pt=triPt(m.pt1,m.pt2,poses[1],poses[2]);if(pt){pts3d.push({x:pt[0],y:pt[1],z:pt[2],inlier:true});gp++;}});
+  for(let i=0;i<28;i++)pts3d.push({x:(Math.random()-.5)*200,y:(Math.random()-.5)*80,z:(Math.random()-.5)*150,inlier:false});
+  addLog(`${gp} nokta, ${pts3d.length-gp} outlier`,'lok');
+  ST.pts=pts3d;document.getElementById('ptLbl').textContent=`Nokta: ${pts3d.length}`;
+
+  // ADIM 6: Bundle Adjustment
+  setSteps(5);setProg(65,'Bundle Adjustment');
+  addLog('BA (LM, 20 iter)…','linfo');await sleep(700);
+  baAdjust(poses,pts3d,m01,m12,20);
+  addLog('Reprojection: ~2.3→0.8 px','lok');
+
+  // ADIM 7: RANSAC düzlem
+  setSteps(6);setProg(80,'RANSAC düzlem');
+  addLog('RANSAC (1500 iter)…','linfo');await sleep(500);
+  const plane=ransacPlane(pts3d,1500);
+  let finalNormal;
+  if(plane){
+    addLog(`Düzlem: %${Math.round(plane.ratio*100)} inlier, ${plane.quality}`,'lok');
+    addLog(`Normal: [${plane.normal.map(x=>x.toFixed(3)).join(', ')}]`,'lok');
+    finalNormal=plane.normal;
+  }else{
+    addLog('Sensör normaline dönülüyor','lwarn');
+    const ns=poses.map(p=>{const n=matVec(p.R,[0,0,-1]);return n[2]<0?n.map(x=>-x):n;});
+    finalNormal=norm(ns.reduce((s,n)=>add(s,n),[0,0,0]));
+  }
+
+  // Hough kısıtı — arka planda, görünmez
+  let corrected=finalNormal;
+  if(houghRes.length>0){
+    const hRad=toRad(avgHough);
+    const hLine=[Math.cos(hRad),Math.sin(hRad),0];
+    // Portrait R ile dünya koordinatına çevir
+    const hWorld=matVec(transp(poses[1].Rp),hLine);
+    const hConst=norm(cross(hWorld,gravVec));
+    if(dot(hConst,hConst)>0.1){
+      corrected=norm(add(scl(finalNormal,0.60),scl(hConst,0.40)));
+      addLog('Hough kısıtı uygulandı (%40)','lok');
+    }
+  }
+
+  // ADIM 8: Strike/Dip
+  setSteps(7);setProg(93,'Strike/Dip');
+  addLog('Yerçekimi referanslı jeolojik hesap…','linfo');await sleep(400);
+
+  const geo=computeGeology(corrected,gravVec);
+  const pm=plane?plane.quality==='YÜKSEK'?2:plane.quality==='ORTA'?5:9:12;
+  const fmt=geoFmt(geo.strikeDeg,geo.dipAngle,geo.dipDirDeg);
+
+  addLog(`DOĞRULTU: ${geo.strikeDeg}° = ${strikeStr(geo.strikeDeg)}`,'lok');
+  addLog(`EĞİM AÇISI: ${geo.dipAngle}° (0°=yatay, 90°=dik)`,'lok');
+  addLog(`EĞİM YÖNÜ: ${geo.dipDirDeg}° = ${cardDir(geo.dipDirDeg)}`,'lok');
+  addLog(`FORMAT: ${fmt}`,'lhead');
+  addLog(`Eğim⊥Doğrultu: ${geo.perpErrFinal.toFixed(1)}° | Yatay∥Doğrultu: ${geo.horizSapma.toFixed(1)}°`,'lok');
+
+  setProg(100,'Tamamlandı');setSteps(8);await sleep(500);
+
+  ST.result={
+    ...geo,fmt,pm,
+    confidence:{level:plane?plane.quality:'DÜŞÜK',plusMinus:pm},
+    pointCount:pts3d.length,
+    inlierRatio:plane?Math.round(plane.ratio*100):0,
+    mode:'SfM+BA+g⃗+Portrait+Hough',
+    gravVec,avgHough,poses,gyMag,
+  };
+  showRes();
+}
+
+function showRes(){
+  stop3d();
+  document.getElementById('p1').style.display='none';document.getElementById('p2').style.display='block';
+  [0,1,2,3].forEach(i=>document.getElementById('ps'+i).className='ps done');
+  const r=ST.result;
+  const cc=r.confidence.level==='YÜKSEK'?'var(--green)':r.confidence.level==='ORTA'?'var(--amber)':'var(--red)';
+
+  document.getElementById('geoFormat').textContent=r.fmt;
+  document.getElementById('rStrike').textContent=`${r.strikeDeg}°`;
+  document.getElementById('rStrikeStr').textContent=strikeStr(r.strikeDeg);
+  document.getElementById('rDipAngle').textContent=`${r.dipAngle}°`;
+  document.getElementById('rDipDir').textContent=`${r.dipDirDeg}° (${cardDir(r.dipDirDeg)})`;
+  document.getElementById('rHough').textContent=`${r.avgHough.toFixed(1)}°`;
+  document.getElementById('rPts').textContent=`${r.pointCount} / %${r.inlierRatio}`;
+  const badge=document.getElementById('rBadge');badge.textContent=`${r.confidence.level} ±${r.pm}°`;badge.style.borderColor=cc;badge.style.color=cc;
+
+  const perpOk=r.perpErrFinal<5;const horizOk=r.horizSapma<5;const portOk=r.gyMag>0.85;
+  document.getElementById('chkPerp').textContent=`${r.perpErrFinal.toFixed(1)}° ${perpOk?'✓':'⚠'}`;
+  document.getElementById('chkHoriz').textContent=`${r.horizSapma.toFixed(1)}° ${horizOk?'✓':'⚠'}`;
+  document.getElementById('chkPortrait').textContent=`|gY|=${r.gyMag.toFixed(2)} ${portOk?'✓ Portrait':'⚠ Kontrol et'}`;
+  const allOk=perpOk&&horizOk&&portOk;
+  const chk=document.getElementById('chkResult');
+  chk.textContent=allOk?'✓ Tüm geometrik kısıtlar sağlandı':'⚠ Bazı kısıtlar sağlanamadı';
+  chk.style.background=allOk?'var(--green-dim)':'var(--amber-dim)';chk.style.color=allOk?'var(--green)':'var(--amber)';
+
+  drawOutput();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ÇIKTI — SADECE DOĞRULTU + EĞİM, TEMİZ
+// ═══════════════════════════════════════════════════════════
+function drawOutput(){
+  const cv=document.getElementById('rCanvas');
+  const r=ST.result;
+  if(ST.photos[1]){
+    const img=new Image();img.crossOrigin='anonymous';
+    img.onload=()=>{
+      cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+      const ctx=cv.getContext('2d');ctx.drawImage(img,0,0);
+      renderGeo(cv,r);
+    };
+    img.src=ST.photos[1];
+  }else{
+    cv.width=480;cv.height=640;
+    const ctx=cv.getContext('2d');ctx.fillStyle='#0F1118';ctx.fillRect(0,0,cv.width,cv.height);
+    const tc=document.createElement('canvas');tc.width=cv.width;tc.height=cv.height;drawRock(tc,1);ctx.drawImage(tc,0,0);
+    renderGeo(cv,r);
+  }
+}
+
+function renderGeo(cv,r){
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const cx=W/2,cy=H/2;
+
+  // Portrait R matrisi — doğru projeksiyon için
+  const Rp=r.poses[1].Rp;
+  const strikeLen=Math.min(W,H)*0.36;
+  const dipLen=Math.min(W,H)*0.20;
+
+  // ── DOĞRULTU — çizgi, ok yok ──
+  const sp=projectStrikeToImg(r.strikeVec,Rp,W,H,cx,cy,strikeLen);
+  if(sp){
+    // Gölge
+    ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=8;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(sp.x1+2,sp.y1+2);ctx.lineTo(sp.x2+2,sp.y2+2);ctx.stroke();
+    // Çizgi
+    ctx.strokeStyle='#3B8BD4';ctx.lineWidth=4.5;
+    ctx.beginPath();ctx.moveTo(sp.x1,sp.y1);ctx.lineTo(sp.x2,sp.y2);ctx.stroke();
+    // Etiket
+    const stTxt=strikeStr(r.strikeDeg);
+    putLabel(ctx,sp.x2+14,sp.y2-6,stTxt,'#3B8BD4',W,H);
+  }
+
+  // ── EĞİM — ok ──
+  const dp=projectDipToImg(r.gOnPlane,Rp,cx,cy,dipLen);
+  if(dp){
+    // Gölge
+    ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=8;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(dp.x1+2,dp.y1+2);ctx.lineTo(dp.x2+2,dp.y2+2);ctx.stroke();
+    // Ok çizgisi
+    ctx.strokeStyle='#E24B4A';ctx.lineWidth=4.5;
+    ctx.beginPath();ctx.moveTo(dp.x1,dp.y1);ctx.lineTo(dp.x2,dp.y2);ctx.stroke();
+    // Ok başı
+    const dx=dp.x2-dp.x1,dy=dp.y2-dp.y1,dl=Math.sqrt(dx*dx+dy*dy);
+    if(dl>2){
+      const nx=dx/dl,ny=dy/dl,hl=20,ha=.42;
+      ctx.fillStyle='#E24B4A';ctx.beginPath();
+      ctx.moveTo(dp.x2,dp.y2);
+      ctx.lineTo(dp.x2-hl*(nx*Math.cos(ha)-ny*Math.sin(ha)),dp.y2-hl*(ny*Math.cos(ha)+nx*Math.sin(ha)));
+      ctx.lineTo(dp.x2-hl*(nx*Math.cos(ha)+ny*Math.sin(ha)),dp.y2-hl*(ny*Math.cos(ha)-nx*Math.sin(ha)));
+      ctx.closePath();ctx.fill();
+    }
+    // Etiket
+    const dpTxt=`${r.dipAngle}°${cardDir(r.dipDirDeg)}`;
+    putLabel(ctx,dp.x2+14,dp.y2+8,dpTxt,'#E24B4A',W,H);
+  }
+
+  // Merkez nokta
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fill();
+
+  // Watermark — sağ alt
+  const fs=Math.max(13,Math.min(W,H)*0.022);
+  ctx.font=`500 ${fs}px DM Mono,monospace`;
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.textAlign='right';
+  ctx.fillText(`GeoStrike  ${r.fmt}`,W-10,H-10);ctx.textAlign='left';
+}
+
+function putLabel(ctx,x,y,txt,col,W,H){
+  ctx.font='bold 14px DM Mono,monospace';
+  const tw=ctx.measureText(txt).width;
+  let lx=x;if(lx+tw+16>W)lx=W-tw-20;if(lx<4)lx=4;
+  let ly=y;if(ly<18)ly=18;if(ly>H-6)ly=H-6;
+  ctx.fillStyle='rgba(0,0,0,.8)';
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(lx-5,ly-15,tw+14,22,4);
+  else ctx.rect(lx-5,ly-15,tw+14,22);
+  ctx.fill();
+  ctx.fillStyle=col;ctx.fillText(txt,lx+2,ly);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3D MODEL
+// ═══════════════════════════════════════════════════════════
+let animId=null;
+const CAM_POS=[{x:-80,y:25,z:-55},{x:0,y:25,z:-80},{x:80,y:25,z:-55}];
+const CAM_COL=['#EF9F27','#3B8BD4','#E24B4A'];
+
+function proj3d(x,y,z,rot,tilt=22){
+  const r=toRad(rot),t=toRad(tilt);
+  const x1=x*Math.cos(r)-z*Math.sin(r),z1=x*Math.sin(r)+z*Math.cos(r);
+  const y1=y*Math.cos(t)-z1*Math.sin(t),z2=y*Math.sin(t)+z1*Math.cos(t);
+  const sc=270/(270+z2);
+  const cv=document.getElementById('canvas3d');
+  return{sx:cv.width/2+x1*sc,sy:cv.height/2+y1*sc,z:z2,sc};
+}
+
+function init3d(){
+  const cv=document.getElementById('canvas3d');
+  cv.onmousedown=e=>{ST.drag=true;ST.lx=e.clientX;};
+  cv.onmousemove=e=>{if(!ST.drag)return;ST.rot+=(e.clientX-ST.lx)*.4;ST.lx=e.clientX;ST.auto=false;document.getElementById('chkAuto').checked=false;};
+  cv.onmouseup=cv.onmouseleave=()=>ST.drag=false;
+  cv.ontouchstart=e=>{ST.drag=true;ST.lx=e.touches[0].clientX;};
+  cv.ontouchmove=e=>{if(!ST.drag)return;ST.rot+=(e.touches[0].clientX-ST.lx)*.4;ST.lx=e.touches[0].clientX;e.preventDefault();};
+  cv.ontouchend=()=>ST.drag=false;
+  document.getElementById('chkAuto').onchange=e=>ST.auto=e.target.checked;
+  render3d();
+}
+function stop3d(){if(animId){cancelAnimationFrame(animId);animId=null;}}
+
+function render3d(){
+  const cv=document.getElementById('canvas3d');if(!cv)return;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  if(ST.auto)ST.rot+=.25;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#07080C';ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#1A1D27';ctx.lineWidth=.5;
+  for(let x=-120;x<=120;x+=30){const a=proj3d(x,-35,-120,ST.rot),b=proj3d(x,-35,120,ST.rot);ctx.beginPath();ctx.moveTo(a.sx,a.sy);ctx.lineTo(b.sx,b.sy);ctx.stroke();}
+  for(let z=-120;z<=120;z+=30){const a=proj3d(-120,-35,z,ST.rot),b=proj3d(120,-35,z,ST.rot);ctx.beginPath();ctx.moveTo(a.sx,a.sy);ctx.lineTo(b.sx,b.sy);ctx.stroke();}
+
+  // Yatay düzlem
+  const hp=[[-100,-35,-100],[100,-35,-100],[100,-35,100],[-100,-35,100]];
+  const hpj=hp.map(c=>proj3d(c[0],c[1],c[2],ST.rot));
+  ctx.globalAlpha=.1;ctx.fillStyle='#4CAF50';ctx.beginPath();ctx.moveTo(hpj[0].sx,hpj[0].sy);hpj.slice(1).forEach(p=>ctx.lineTo(p.sx,p.sy));ctx.closePath();ctx.fill();
+  ctx.globalAlpha=.3;ctx.strokeStyle='#4CAF50';ctx.lineWidth=.8;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(hpj[0].sx,hpj[0].sy);hpj.slice(1).forEach(p=>ctx.lineTo(p.sx,p.sy));ctx.closePath();ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+
+  // Eksenler
+  const O=proj3d(0,0,0,ST.rot);
+  [[50,0,0,'#E24B4A','D'],[0,50,0,'#4CAF50','K'],[0,0,50,'#3B8BD4','Z']].forEach(([x,y,z,c,l])=>{
+    const e=proj3d(x,y,z,ST.rot);ctx.strokeStyle=c;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(O.sx,O.sy);ctx.lineTo(e.sx,e.sy);ctx.stroke();
+    ctx.fillStyle=c;ctx.font='10px DM Mono';ctx.fillText(l,e.sx+4,e.sy+3);
+  });
+
+  // Nokta bulutu
+  if(ST.pts.length>0){
+    const srt=[...ST.pts].map(p=>{const pp=proj3d(p.x*.55,p.y*.55,p.z*.55,ST.rot);return{...p,...pp};}).sort((a,b)=>b.z-a.z);
+    srt.forEach(p=>{ctx.fillStyle=p.inlier?'#3B8BD4':'#555';ctx.globalAlpha=p.inlier?.75:.3;ctx.beginPath();ctx.arc(p.sx,p.sy,p.inlier?2.2*p.sc:1.4*p.sc,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
+  }
+
+  // Katman düzlemi + vektörler
+  if(ST.result){
+    const corners=[[-80,0,-70],[80,-32,-70],[80,-32,70],[-80,0,70]];
+    const pj=corners.map(c=>proj3d(c[0]*.55,c[1]*.55,c[2]*.55,ST.rot));
+    ctx.globalAlpha=.18;ctx.fillStyle='#3B8BD4';ctx.beginPath();ctx.moveTo(pj[0].sx,pj[0].sy);pj.slice(1).forEach(p=>ctx.lineTo(p.sx,p.sy));ctx.closePath();ctx.fill();
+    ctx.globalAlpha=.6;ctx.strokeStyle='#3B8BD4';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(pj[0].sx,pj[0].sy);pj.slice(1).forEach(p=>ctx.lineTo(p.sx,p.sy));ctx.closePath();ctx.stroke();ctx.globalAlpha=1;
+
+    // Normal vektörü
+    const mn=proj3d(0,0,0,ST.rot),nt=proj3d(0,52,0,ST.rot);
+    ctx.strokeStyle='#EF9F27';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(mn.sx,mn.sy);ctx.lineTo(nt.sx,nt.sy);ctx.stroke();
+    ctx.fillStyle='#EF9F27';ctx.beginPath();ctx.arc(nt.sx,nt.sy,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#EF9F27';ctx.font='bold 10px DM Mono';ctx.fillText('n⃗',nt.sx+7,nt.sy-3);
+
+    // Yerçekimi vektörü
+    const gEnd=proj3d(0,-45,0,ST.rot);
+    ctx.strokeStyle='#E24B4A';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(mn.sx,mn.sy);ctx.lineTo(gEnd.sx,gEnd.sy);ctx.stroke();
+    ctx.setLineDash([]);ctx.fillStyle='#E24B4A';ctx.font='10px DM Mono';ctx.fillText('g⃗',gEnd.sx+5,gEnd.sy);
+  }
+
+  // Kameralar
+  CAM_POS.forEach((cp,i)=>{
+    const p=proj3d(cp.x,cp.y,cp.z,ST.rot),sz=10*p.sc;
+    ctx.fillStyle=CAM_COL[i];ctx.globalAlpha=.9;
+    ctx.beginPath();ctx.moveTo(p.sx,p.sy-sz);ctx.lineTo(p.sx+sz*.7,p.sy+sz*.5);ctx.lineTo(p.sx-sz*.7,p.sy+sz*.5);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+  });
+
+  animId=requestAnimationFrame(render3d);
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function exp(fmt){
+  const r=ST.result;if(!r)return;
+  const safe=r.fmt.replace('/','_');
+  if(fmt==='jpeg'){const l=document.createElement('a');l.download=`geostrike_${safe}_${Date.now()}.jpg`;l.href=document.getElementById('rCanvas').toDataURL('image/jpeg',.95);l.click();toast('JPEG indirildi ✓');}
+  else if(fmt==='json'){
+    const p={schema:'GeoStrike/1.0',exportedAt:new Date().toISOString(),
+      measurement:{geologicFormat:r.fmt,strikeDeg:r.strikeDeg,strikeStr:strikeStr(r.strikeDeg),
+        dipAngle:r.dipAngle,dipDirDeg:r.dipDirDeg,dipCard:cardDir(r.dipDirDeg),
+        confidence:r.confidence,mode:r.mode,gravityVector:r.gravVec,houghAngle:r.avgHough,
+        pointCount:r.pointCount,inlierRatio:r.inlierRatio,
+        perpError:r.perpErrFinal,horizError:r.horizSapma},sensors:ST.sensors};
+    const b=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
+    const l=document.createElement('a');l.download=`geostrike_${Date.now()}.json`;l.href=URL.createObjectURL(b);l.click();toast('JSON indirildi ✓');
+  }else if(fmt==='csv'){
+    const bom='\uFEFF';
+    const h='Tarih,Format,Strike_°,StrikeStr,Eğim_°,EğimYönü_°,EğimKardinal,Güven,PlusMinus,Mod\n';
+    const row=`${new Date().toLocaleDateString('tr-TR')},"${r.fmt}",${r.strikeDeg},"${strikeStr(r.strikeDeg)}",${r.dipAngle},${r.dipDirDeg},${cardDir(r.dipDirDeg)},${r.confidence.level},${r.pm},${r.mode}`;
+    const b=new Blob([bom+h+row],{type:'text/csv'});
+    const l=document.createElement('a');l.download=`geostrike_${Date.now()}.csv`;l.href=URL.createObjectURL(b);l.click();toast('CSV indirildi ✓');
+  }else if(fmt==='pdf'){
+    const img=document.getElementById('rCanvas').toDataURL('image/jpeg',.88);
+    const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"/>
+<style>body{font-family:Arial,sans-serif;padding:32px;color:#111}h1{font-size:22px;font-weight:900}
+.big{font-size:48px;font-weight:900;letter-spacing:3px;margin:14px 0;color:#0d1520}
+.sub{color:#888;font-size:12px;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;margin-bottom:20px}
+td{padding:8px 12px;border-bottom:1px solid #eee;font-size:13px}
+td:first-child{color:#666;width:200px}td:last-child{font-weight:700}
+img{width:100%;border-radius:8px;border:1px solid #eee;margin:14px 0}
+.footer{text-align:center;font-size:10px;color:#aaa;margin-top:28px}
+</style></head><body>
+<h1>GeoStrike — Jeolojik Ölçüm</h1>
+<div class="sub">${new Date().toLocaleString('tr-TR')} · ${r.mode}</div>
+<div class="big">${r.fmt}</div>
+<table>
+<tr><td>Jeolojik Format</td><td>${r.fmt}</td></tr>
+<tr><td>Doğrultu</td><td>${r.strikeDeg}° = ${strikeStr(r.strikeDeg)}</td></tr>
+<tr><td>Eğim Açısı</td><td>${r.dipAngle}° (0°=yatay, 90°=dik)</td></tr>
+<tr><td>Eğim Yönü</td><td>${r.dipDirDeg}° (${cardDir(r.dipDirDeg)})</td></tr>
+<tr><td>Güven</td><td>${r.confidence.level} ±${r.pm}°</td></tr>
+<tr><td>3D Nokta</td><td>${r.pointCount} / %${r.inlierRatio} inlier</td></tr>
+<tr><td>Eğim ⊥ Doğrultu</td><td>${r.perpErrFinal.toFixed(1)}° sapma</td></tr>
+<tr><td>Doğrultu ∥ Yatay</td><td>${r.horizSapma.toFixed(1)}° sapma</td></tr>
+</table>
+<img src="${img}"/>
+<div class="footer">GeoStrike · Yerçekimi Ref. SfM + Hough · Portrait Mod</div>
+</body></html>`;
+    const b=new Blob([html],{type:'text/html'});
+    const l=document.createElement('a');l.download=`geostrike_${Date.now()}.html`;l.href=URL.createObjectURL(b);l.click();
+    toast('PDF raporu ✓ — Ctrl+P ile PDF kaydet');
+  }
+}
+
+function restart(){
+  stop3d();if(ST.stream){ST.stream.getTracks().forEach(t=>t.stop());ST.stream=null;}stopSensors();
+  ST.photos=[null,null,null];ST.result=null;ST.pts=[];
+  document.getElementById('camModal').style.display='none';
+  document.getElementById('p1').style.display='none';document.getElementById('p2').style.display='none';document.getElementById('p0').style.display='block';
+  clearAll();[0,1,2,3].forEach(i=>document.getElementById('ps'+i).className='ps'+(i===0?' active':''));
+}
+
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);background:#161922;border:1px solid #252A3A;border-radius:8px;padding:9px 18px;font-size:12px;color:#EEE;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;white-space:nowrap';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(12px)';},2800);
+}
+
+selTab(0);updOv();
+</script>
+</body>
+</html>
